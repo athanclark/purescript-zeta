@@ -67,10 +67,9 @@ setIx :: forall eff a. a -> String -> IxSignal (ref :: REF | eff) a -> Eff (ref 
 setIx x k (IxSignal {subscribers,individual,broadcast}) = do
   mF <- StrMap.lookup k <$> readRef subscribers
   case mF of
-    Nothing -> modifyRef individual (StrMap.insert k x)
-    Just f -> do
-      f k x
-      modifyRef individual (StrMap.delete k)
+    Nothing -> pure unit
+    Just f -> f k x
+  modifyRef individual (StrMap.insert k x)
 
 -- | Gets the last message published to the subscribers
 get :: forall eff a. IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff) a
