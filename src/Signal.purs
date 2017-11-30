@@ -8,8 +8,7 @@ import Data.Traversable (traverse_)
 import Data.Maybe (Maybe (Just), isJust, fromMaybe)
 import Data.Foldable (class Foldable, foldr)
 import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Unsafe (unsafePerformEff)
-import Control.Monad.Eff.Ref (REF, Ref, modifyRef, newRef, readRef, writeRef)
+import Control.Monad.Eff.Ref (REF, newRef, readRef, writeRef)
 import Control.Execution.Immediate (IMMEDIATE, run0)
 
 -- | Alias for `make`
