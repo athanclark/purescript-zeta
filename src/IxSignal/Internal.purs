@@ -53,23 +53,23 @@ subscribeIxWithKey f k (IxSignal {subscribers,individual,broadcast}) = do
       Just i -> do
         modifyRef individual (StrMap.delete k)
         pure i
-  f k x
   modifyRef subscribers (StrMap.insert k f)
+  f k x
 
 -- | Publish a message to the set of subscribers
 set :: forall eff a. a -> IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
 set x (IxSignal {subscribers,individual,broadcast}) = do
+  writeRef broadcast x
   fs <- readRef subscribers
   traverse_ (\(Tuple k f) -> f k x) (StrMap.toUnfoldable fs :: Array (Tuple String (String -> a -> Eff (ref :: REF | eff) Unit)))
-  writeRef broadcast x
 
 setIx :: forall eff a. a -> String -> IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
 setIx x k (IxSignal {subscribers,individual,broadcast}) = do
+  modifyRef individual (StrMap.insert k x)
   mF <- StrMap.lookup k <$> readRef subscribers
   case mF of
     Nothing -> pure unit
     Just f -> f k x
-  modifyRef individual (StrMap.insert k x)
 
 -- | Gets the last message published to the subscribers
 get :: forall eff a. IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff) a
@@ -128,6 +128,6 @@ delete k sig = deleteSubscriber k sig >>= \_ -> deleteIndividual k sig
 make :: forall eff a. a -> Eff (ref :: REF | eff) (IxSignal (ref :: REF | eff) a)
 make x = do
   subscribers <- newRef StrMap.empty
-  broadcast <- newRef x
   individual <- newRef StrMap.empty
+  broadcast <- newRef x
   pure (IxSignal {subscribers,individual,broadcast})
