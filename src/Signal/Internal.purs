@@ -20,15 +20,15 @@ subscribe :: forall eff a
           -> Eff (ref :: REF | eff) Unit
 subscribe f (Signal {subscribers,value}) = do
   x <- readRef value
-  f x
   modifyRef subscribers (\xs -> Array.snoc xs f)
+  f x
 
 -- | Publish a message to the set of subscribers
 set :: forall eff a. a -> Signal (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
 set x (Signal {subscribers,value}) = do
+  writeRef value x
   fs <- readRef subscribers
   traverse_ (\f -> f x) fs
-  writeRef value x
 
 -- | Gets the last message published to the subscribers
 get :: forall eff a. Signal (ref :: REF | eff) a -> Eff (ref :: REF | eff) a
