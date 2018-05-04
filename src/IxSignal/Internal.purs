@@ -24,12 +24,25 @@ subscribe :: forall eff a
           -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit
 subscribe f = subscribeWithKey (\_ -> f)
 
+subscribeLight :: forall eff a
+           . (a -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit)
+          -> IxSignal (ref :: REF, uuid :: UUID.GENUUID | eff) a
+          -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit
+subscribeLight f = subscribeWithKeyLight (\_ -> f)
+
 subscribeIx :: forall eff a
              . (a -> Eff (ref :: REF | eff) Unit)
             -> String
             -> IxSignal (ref :: REF | eff) a
             -> Eff (ref :: REF | eff) Unit
 subscribeIx f = subscribeIxWithKey (\_ -> f)
+
+subscribeIxLight :: forall eff a
+             . (a -> Eff (ref :: REF | eff) Unit)
+            -> String
+            -> IxSignal (ref :: REF | eff) a
+            -> Eff (ref :: REF | eff) Unit
+subscribeIxLight f = subscribeIxWithKeyLight (\_ -> f)
 
 subscribeWithKey :: forall eff a
                   . (String -> a -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit)
@@ -39,13 +52,22 @@ subscribeWithKey f sig = do
   k <- show <$> UUID.genUUID
   subscribeIxWithKey f k sig
 
+subscribeWithKeyLight :: forall eff a
+                  . (String -> a -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit)
+                 -> IxSignal (ref :: REF, uuid :: UUID.GENUUID | eff) a
+                 -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit
+subscribeWithKeyLight f sig = do
+  k <- show <$> UUID.genUUID
+  subscribeIxWithKeyLight f k sig
+
 -- | Add a subscribers to the set
 subscribeIxWithKey :: forall eff a
                   . (String -> a -> Eff (ref :: REF | eff) Unit)
                   -> String
                   -> IxSignal (ref :: REF | eff) a
                   -> Eff (ref :: REF | eff) Unit
-subscribeIxWithKey f k (IxSignal {subscribers,individual,broadcast}) = do
+subscribeIxWithKey f k sig@(IxSignal {individual,broadcast}) = do
+  subscribeIxWithKeyLight f k sig
   x <- do
     mI <- StrMap.lookup k <$> readRef individual
     case mI of
@@ -53,8 +75,16 @@ subscribeIxWithKey f k (IxSignal {subscribers,individual,broadcast}) = do
       Just i -> do
         modifyRef individual (StrMap.delete k)
         pure i
-  modifyRef subscribers (StrMap.insert k f)
   f k x
+
+subscribeIxWithKeyLight :: forall eff a
+                        . (String -> a -> Eff (ref :: REF | eff) Unit)
+                        -> String
+                        -> IxSignal (ref :: REF | eff) a
+                        -> Eff (ref :: REF | eff) Unit
+subscribeIxWithKeyLight f k (IxSignal {subscribers}) =
+  modifyRef subscribers (StrMap.insert k f)
+
 
 -- | Publish a message to the set of subscribers
 set :: forall eff a. a -> IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit

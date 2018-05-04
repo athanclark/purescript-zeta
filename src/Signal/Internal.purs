@@ -18,10 +18,18 @@ subscribe :: forall eff a
            . (a -> Eff (ref :: REF | eff) Unit)
           -> Signal (ref :: REF | eff) a
           -> Eff (ref :: REF | eff) Unit
-subscribe f (Signal {subscribers,value}) = do
+subscribe f sig@(Signal {value}) = do
+  subscribeLight f sig
   x <- readRef value
-  modifyRef subscribers (\xs -> Array.snoc xs f)
   f x
+
+subscribeLight :: forall eff a
+                . (a -> Eff (ref :: REF | eff) Unit)
+               -> Signal (ref :: REF | eff) a
+               -> Eff (ref :: REF | eff) Unit
+subscribeLight f (Signal {subscribers}) = do
+  modifyRef subscribers (\xs -> Array.snoc xs f)
+
 
 -- | Publish a message to the set of subscribers
 set :: forall eff a. a -> Signal (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
