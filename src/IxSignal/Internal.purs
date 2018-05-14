@@ -1,9 +1,8 @@
 module IxSignal.Internal where
 
 import Prelude hiding (map)
-import Data.Tuple (Tuple (..))
 import Data.Maybe (Maybe (..))
-import Data.Traversable (traverse_)
+import Data.TraversableWithIndex (traverseWithIndex)
 import Data.StrMap (StrMap)
 import Data.StrMap as StrMap
 import Data.UUID as UUID
@@ -60,14 +59,14 @@ subscribeWithKeyLight f sig = do
   k <- show <$> UUID.genUUID
   subscribeIxWithKeyLight f k sig
 
--- | Add a subscribers to the set
+-- | Add a subscriber to the set, removing and using a specific named value if it exists
 subscribeIxWithKey :: forall eff a
                   . (String -> a -> Eff (ref :: REF | eff) Unit)
                   -> String
                   -> IxSignal (ref :: REF | eff) a
                   -> Eff (ref :: REF | eff) Unit
-subscribeIxWithKey f k sig@(IxSignal {individual,broadcast}) = do
-  subscribeIxWithKeyLight f k sig
+subscribeIxWithKey f k (IxSignal {individual,broadcast,subscribers}) = do
+  modifyRef subscribers (StrMap.insert k f)
   x <- do
     mI <- StrMap.lookup k <$> readRef individual
     case mI of
@@ -77,12 +76,14 @@ subscribeIxWithKey f k sig@(IxSignal {individual,broadcast}) = do
         pure i
   f k x
 
+-- | Add a subscriber to the set, without applying a value first. Deletes specific indexed named value, if it exists.
 subscribeIxWithKeyLight :: forall eff a
                         . (String -> a -> Eff (ref :: REF | eff) Unit)
                         -> String
                         -> IxSignal (ref :: REF | eff) a
                         -> Eff (ref :: REF | eff) Unit
-subscribeIxWithKeyLight f k (IxSignal {subscribers}) =
+subscribeIxWithKeyLight f k (IxSignal {subscribers,individual}) = do
+  modifyRef individual (StrMap.delete k)
   modifyRef subscribers (StrMap.insert k f)
 
 
@@ -91,21 +92,24 @@ set :: forall eff a. a -> IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff
 set x (IxSignal {subscribers,individual,broadcast}) = do
   writeRef broadcast x
   fs <- readRef subscribers
-  traverse_ (\(Tuple k f) -> f k x) (StrMap.toUnfoldable fs :: Array (Tuple String (String -> a -> Eff (ref :: REF | eff) Unit)))
+  void (traverseWithIndex (\k f -> f k x) fs)
 
+-- | Set a distinguished value for the index, storing if a subscriber is absent
 setIx :: forall eff a. a -> String -> IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
 setIx x k (IxSignal {subscribers,individual,broadcast}) = do
-  modifyRef individual (StrMap.insert k x)
   mF <- StrMap.lookup k <$> readRef subscribers
   case mF of
-    Nothing -> pure unit
-    Just f -> f k x
+    Nothing -> modifyRef individual (StrMap.insert k x)
+    Just f -> do
+      modifyRef individual (StrMap.delete k) -- ensure no residual pending value
+      f k x
 
 -- | Gets the last message published to the subscribers
 get :: forall eff a. IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff) a
 get (IxSignal {broadcast}) = readRef broadcast
 
 
+-- | Attempts to get the last named value, else use the global one.
 getIx :: forall eff a. String -> IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff) a
 getIx k (IxSignal {individual,broadcast}) = do
   mX <- StrMap.lookup k <$> readRef individual
