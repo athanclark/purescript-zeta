@@ -6,6 +6,7 @@ import Data.TraversableWithIndex (traverseWithIndex)
 import Data.StrMap (StrMap)
 import Data.StrMap as StrMap
 import Data.UUID as UUID
+import Data.Array as Array
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Ref (REF, Ref, modifyRef, newRef, readRef, writeRef)
 
@@ -89,10 +90,18 @@ subscribeIxWithKeyLight f k (IxSignal {subscribers,individual}) = do
 
 -- | Publish a message to the set of subscribers
 set :: forall eff a. a -> IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
-set x (IxSignal {subscribers,individual,broadcast}) = do
+set x sig = setExcept [] x sig
+
+
+setExcept :: forall eff a. Array String -> a -> IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
+setExcept except x (IxSignal {subscribers,broadcast}) = do
   writeRef broadcast x
   fs <- readRef subscribers
-  void (traverseWithIndex (\k f -> f k x) fs)
+  let go k f
+        | k `Array.notElem` except = f k x
+        | otherwise = pure unit
+  void (traverseWithIndex go fs)
+
 
 -- | Set a distinguished value for the index, storing if a subscriber is absent
 setIx :: forall eff a. a -> String -> IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
