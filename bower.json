@@ -19,6 +19,7 @@
     "purescript-setimmediate": "^0.0.0",
     "purescript-js-timers": "^3.0.0",
     "purescript-now": "^3.0.0",
+    "purescript-aff": "^4.1.1",
     "purescript-dom": "^4.13.2",
     "purescript-undefinable": "^3.0.0",
     "purescript-uuid": "^4.0.0"
