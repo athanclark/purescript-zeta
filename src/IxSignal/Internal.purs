@@ -37,6 +37,13 @@ subscribeDiff :: forall eff a
           -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit
 subscribeDiff f = subscribeWithKeyDiff (\_ -> f)
 
+subscribeDiffLight :: forall eff a
+           . Eq a
+          => (a -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit)
+          -> IxSignal (ref :: REF, uuid :: UUID.GENUUID | eff) a
+          -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit
+subscribeDiffLight f = subscribeWithKeyDiffLight (\_ -> f)
+
 subscribeIx :: forall eff a
              . (a -> Eff (ref :: REF | eff) Unit)
             -> String
@@ -58,6 +65,14 @@ subscribeIxDiff :: forall eff a
             -> IxSignal (ref :: REF | eff) a
             -> Eff (ref :: REF | eff) Unit
 subscribeIxDiff f = subscribeIxWithKeyDiff (\_ -> f)
+
+subscribeIxDiffLight :: forall eff a
+             . Eq a
+            => (a -> Eff (ref :: REF | eff) Unit)
+            -> String
+            -> IxSignal (ref :: REF | eff) a
+            -> Eff (ref :: REF | eff) Unit
+subscribeIxDiffLight f = subscribeIxWithKeyDiffLight (\_ -> f)
 
 subscribeWithKey :: forall eff a
                   . (String -> a -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit)
@@ -83,6 +98,15 @@ subscribeWithKeyDiff :: forall eff a
 subscribeWithKeyDiff f sig = do
   k <- show <$> UUID.genUUID
   subscribeIxWithKeyDiff f k sig
+
+subscribeWithKeyDiffLight :: forall eff a
+                      . Eq a
+                     => (String -> a -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit)
+                     -> IxSignal (ref :: REF, uuid :: UUID.GENUUID | eff) a
+                     -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit
+subscribeWithKeyDiffLight f sig = do
+  k <- show <$> UUID.genUUID
+  subscribeIxWithKeyDiffLight f k sig
 
 
 -- | Add a subscriber to the set, removing and using a specific named value if it exists
@@ -128,6 +152,23 @@ subscribeIxWithKeyDiff f k sig = do
           writeRef lastValueRef x
           f k' x
   subscribeIxWithKey go k sig
+
+
+-- | Like `subscribeIxWithKeyDiff`, but without an initial firing
+subscribeIxWithKeyDiffLight :: forall eff a
+                             . Eq a
+                            => (String -> a -> Eff (ref :: REF | eff) Unit)
+                            -> String
+                            -> IxSignal (ref :: REF | eff) a
+                            -> Eff (ref :: REF | eff) Unit
+subscribeIxWithKeyDiffLight f k sig = do
+  lastValueRef <- newRef =<< get sig
+  let go k' x = do
+        lastValue <- readRef lastValueRef
+        when (x /= lastValue) $ do
+          writeRef lastValueRef x
+          f k' x
+  subscribeIxWithKeyLight go k sig
 
 
 -- | Publish a message to the set of subscribers
