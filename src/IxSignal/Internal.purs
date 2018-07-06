@@ -196,6 +196,25 @@ setIx x k (IxSignal {subscribers,individual,broadcast}) = do
       modifyRef individual (StrMap.delete k) -- ensure no residual pending value
       f k x
 
+
+setDiff :: forall eff a. Eq a => a -> IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
+setDiff x sig = do
+  y <- get sig
+  when (y /= x) (set x sig)
+
+
+setExceptDiff :: forall eff a. Eq a => Array String -> a -> IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
+setExceptDiff ks x sig = do
+  y <- get sig
+  when (y /= x) (setExcept ks x sig)
+
+
+setIxDiff :: forall eff a. Eq a => a -> String -> IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
+setIxDiff x k sig = do
+  y <- get sig
+  when (y /= x) (setIx x k sig)
+
+
 -- | Gets the last message published to the subscribers
 get :: forall eff a. IxSignal (ref :: REF | eff) a -> Eff (ref :: REF | eff) a
 get (IxSignal {broadcast}) = readRef broadcast
