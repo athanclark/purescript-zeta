@@ -10,8 +10,8 @@ import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Ref (REF)
 
 
-ixSignalToSignalIx :: forall eff a
-                    . IxSignal (ref :: REF | eff) a
+ixSignalToSignalIx :: forall eff rw a
+                    . IxSignal (read :: READ | rw) (ref :: REF | eff) a
                    -> String
                    -> Eff (ref :: REF | eff) 
                       (Sig.Signal (read :: READ, write :: WRITE) (ref :: REF | eff) a)
@@ -21,8 +21,8 @@ ixSignalToSignalIx sig k = do
   pure out
 
 
-ixSignalToSignal :: forall eff a
-                  . IxSignal (ref :: REF, uuid :: GENUUID | eff) a
+ixSignalToSignal :: forall eff rw a
+                  . IxSignal (read :: READ | rw) (ref :: REF, uuid :: GENUUID | eff) a
                  -> Eff (ref :: REF, uuid :: GENUUID | eff)
                     (Sig.Signal (read :: READ, write :: WRITE) (ref :: REF, uuid :: GENUUID | eff) a)
 ixSignalToSignal sig = do
