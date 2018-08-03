@@ -1,5 +1,6 @@
 module IxSignal where
 
+import Signal.Types (READ, WRITE)
 import Signal.Internal as Sig
 import IxSignal.Internal (IxSignal, subscribeIx, get)
 
@@ -12,7 +13,8 @@ import Control.Monad.Eff.Ref (REF)
 ixSignalToSignalIx :: forall eff a
                     . IxSignal (ref :: REF | eff) a
                    -> String
-                   -> Eff (ref :: REF | eff) (Sig.Signal (ref :: REF | eff) a)
+                   -> Eff (ref :: REF | eff) 
+                      (Sig.Signal (read :: READ, write :: WRITE) (ref :: REF | eff) a)
 ixSignalToSignalIx sig k = do
   out <- Sig.make =<< get sig
   subscribeIx (\a -> Sig.set a out) k sig
@@ -21,7 +23,8 @@ ixSignalToSignalIx sig k = do
 
 ixSignalToSignal :: forall eff a
                   . IxSignal (ref :: REF, uuid :: GENUUID | eff) a
-                 -> Eff (ref :: REF, uuid :: GENUUID | eff) (Sig.Signal (ref :: REF, uuid :: GENUUID | eff) a)
+                 -> Eff (ref :: REF, uuid :: GENUUID | eff)
+                    (Sig.Signal (read :: READ, write :: WRITE) (ref :: REF, uuid :: GENUUID | eff) a)
 ixSignalToSignal sig = do
   k <- show <$> genUUID
   ixSignalToSignalIx sig k

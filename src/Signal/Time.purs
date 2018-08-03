@@ -1,5 +1,6 @@
 module Signal.Time where
 
+import Signal.Types (READ, WRITE)
 import Signal.Internal (Signal, make, set, get, subscribe)
 
 import Prelude
@@ -15,27 +16,30 @@ import Control.Monad.Eff.Timer (TIMER, setInterval, setTimeout, clearTimeout)
 
 every :: forall eff
        . Milliseconds
-      -> Eff (ref :: REF, now :: NOW, timer :: TIMER | eff) (Signal (ref :: REF, now :: NOW, timer :: TIMER | eff) Instant)
+      -> Eff (ref :: REF, now :: NOW, timer :: TIMER | eff)
+           (Signal (write :: WRITE, read :: READ) (ref :: REF, now :: NOW, timer :: TIMER | eff) Instant)
 every (Milliseconds t) = do
   out <- make =<< now
   _ <- setInterval (round t) (now >>= \i -> set i out)
   pure out
 
 
-delay :: forall eff a
+delay :: forall eff rw a
        . Milliseconds
-      -> Signal (ref :: REF, timer :: TIMER | eff) a
-      -> Eff (ref :: REF, timer :: TIMER | eff) (Signal (ref :: REF, timer :: TIMER | eff) a)
+      -> Signal (read :: READ | rw) (ref :: REF, timer :: TIMER | eff) a
+      -> Eff (ref :: REF, timer :: TIMER | eff)
+         (Signal (read :: READ, write :: WRITE) (ref :: REF, timer :: TIMER | eff) a)
 delay (Milliseconds t) sig = do
   out <- make =<< get sig
   subscribe (\x -> void $ setTimeout (round t) (set x out)) sig
   pure out
 
 
-since :: forall eff a
+since :: forall eff rw a
        . Milliseconds
-      -> Signal (ref :: REF, timer :: TIMER | eff) a
-      -> Eff (ref :: REF, timer :: TIMER | eff) (Signal (ref :: REF, timer :: TIMER | eff) Boolean)
+      -> Signal (read :: READ | rw) (ref :: REF, timer :: TIMER | eff) a
+      -> Eff (ref :: REF, timer :: TIMER | eff)
+         (Signal (read :: READ, write :: WRITE) (ref :: REF, timer :: TIMER | eff) Boolean)
 since (Milliseconds t) sig = do
   threadRef <- newRef Nothing
   out <- make true
@@ -55,10 +59,11 @@ since (Milliseconds t) sig = do
   pure out
 
 
-debounce :: forall eff a
+debounce :: forall eff rw a
           . Milliseconds
-         -> Signal (ref :: REF, timer :: TIMER | eff) a
-         -> Eff (ref :: REF, timer :: TIMER | eff) (Signal (ref :: REF, timer :: TIMER | eff) a)
+         -> Signal (read :: READ | rw) (ref :: REF, timer :: TIMER | eff) a
+         -> Eff (ref :: REF, timer :: TIMER | eff)
+            (Signal (read :: READ, write :: WRITE) (ref :: REF, timer :: TIMER | eff) a)
 debounce (Milliseconds t) sig = do
   threadRef <- newRef Nothing
   out <- make =<< get sig

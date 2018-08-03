@@ -1,5 +1,6 @@
 module Signal.DOM where
 
+import Signal.Types (READ, WRITE)
 import Signal.Internal (Signal, make, set)
 import Signal (map')
 
@@ -28,7 +29,10 @@ import Unsafe.Coerce (unsafeCoerce)
 
 
 
-keyPressed :: forall eff. Int -> Eff (ref :: REF, dom :: DOM | eff) (Signal (ref :: REF, dom :: DOM | eff) Boolean)
+keyPressed :: forall eff
+            . Int
+           -> Eff (ref :: REF, dom :: DOM | eff)
+              (Signal (read :: READ, write :: WRITE) (ref :: REF, dom :: DOM | eff) Boolean)
 keyPressed k = do
   w <- window
   out <- make false
@@ -37,7 +41,10 @@ keyPressed k = do
   pure out
 
 
-mouseButton :: forall eff. Int -> Eff (ref :: REF, dom :: DOM | eff) (Signal (ref :: REF, dom :: DOM | eff) Boolean)
+mouseButton :: forall eff
+             . Int
+            -> Eff (ref :: REF, dom :: DOM | eff)
+               (Signal (read :: READ, write :: WRITE) (ref :: REF, dom :: DOM | eff) Boolean)
 mouseButton m = do
   w <- window
   out <- make false
@@ -61,7 +68,9 @@ type Touch =
   }
 
 
-touch :: forall eff. Eff (ref :: REF, dom :: DOM | eff) (Signal (ref :: REF, dom :: DOM | eff) (Array Touch))
+touch :: forall eff
+       . Eff (ref :: REF, dom :: DOM | eff)
+         (Signal (read :: READ, write :: WRITE) (ref :: REF, dom :: DOM | eff) (Array Touch))
 touch = do
   out <- make []
   let report event = do
@@ -76,7 +85,9 @@ touch = do
   pure out
 
 
-tap :: forall eff. Eff (ref :: REF, dom :: DOM | eff) (Signal (ref :: REF, dom :: DOM | eff) Boolean)
+tap :: forall eff
+     . Eff (ref :: REF, dom :: DOM | eff)
+       (Signal (read :: READ, write :: WRITE) (ref :: REF, dom :: DOM | eff) Boolean)
 tap = do
   touches <- touch
   map' (\t -> Array.null t) touches
@@ -84,7 +95,7 @@ tap = do
 
 mousePos :: forall eff
           . Eff (ref :: REF, dom :: DOM, exception :: EXCEPTION | eff)
-              (Signal (ref :: REF, dom :: DOM, exception :: EXCEPTION | eff) {x :: Int, y :: Int})
+              (Signal (read :: READ, write :: WRITE) (ref :: REF, dom :: DOM, exception :: EXCEPTION | eff) {x :: Int, y :: Int})
 mousePos = do
   out <- make {x: 0, y: 0}
   w <- window
@@ -112,7 +123,9 @@ mousePos = do
   pure out
 
 
-animationFrame :: forall eff. Eff (ref :: REF, dom :: DOM, now :: NOW | eff) (Signal (ref :: REF, dom :: DOM, now :: NOW | eff) Instant)
+animationFrame :: forall eff
+                . Eff (ref :: REF, dom :: DOM, now :: NOW | eff)
+                  (Signal (read :: READ, write :: WRITE) (ref :: REF, dom :: DOM, now :: NOW | eff) Instant)
 animationFrame = do
   w <- window
   out <- make =<< now
@@ -124,7 +137,9 @@ animationFrame = do
   pure out
 
 
-windowDimensions :: forall eff. Eff (ref :: REF, dom :: DOM | eff) (Signal (ref :: REF, dom :: DOM | eff) {w :: Int, h :: Int})
+windowDimensions :: forall eff
+                  . Eff (ref :: REF, dom :: DOM | eff)
+                    (Signal (read :: READ, write :: WRITE) (ref :: REF, dom :: DOM | eff) {w :: Int, h :: Int})
 windowDimensions = do
   win <- window
   out <- make =<< ((\w h -> {w,h}) <$> innerWidth win <*> innerHeight win)
