@@ -210,19 +210,19 @@ setIx x k (IxSignal {subscribers,individual,broadcast}) = do
       f k x
 
 
-setDiff :: forall rw a. Eq a => a -> IxSignal (read :: READ, write :: WRITE) a -> Effect Unit
+setDiff :: forall a. Eq a => a -> IxSignal (read :: READ, write :: WRITE) a -> Effect Unit
 setDiff x sig = do
   y <- get sig
   when (y /= x) (set x sig)
 
 
-setExceptDiff :: forall rw a. Eq a => Array String -> a -> IxSignal (read :: READ, write :: WRITE) a -> Effect Unit
+setExceptDiff :: forall a. Eq a => Array String -> a -> IxSignal (read :: READ, write :: WRITE) a -> Effect Unit
 setExceptDiff ks x sig = do
   y <- get sig
   when (y /= x) (setExcept ks x sig)
 
 
-setIxDiff :: forall rw a. Eq a => a -> String -> IxSignal (read :: READ, write :: WRITE) a -> Effect Unit
+setIxDiff :: forall a. Eq a => a -> String -> IxSignal (read :: READ, write :: WRITE) a -> Effect Unit
 setIxDiff x k sig = do
   y <- get sig
   when (y /= x) (setIx x k sig)

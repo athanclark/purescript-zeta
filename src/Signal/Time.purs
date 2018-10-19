@@ -9,7 +9,6 @@ import Data.Time.Duration (Milliseconds (..))
 import Data.Int (round)
 import Data.Maybe (Maybe (..))
 import Effect (Effect)
-import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Effect.Now (now)
 import Effect.Timer (setInterval, setTimeout, clearTimeout)
@@ -42,16 +41,16 @@ since (Milliseconds t) sig = do
   let spawn = setTimeout (round t) do
         Ref.write Nothing threadRef
         set false out
-  t <- spawn
-  Ref.write (Just t) threadRef
+  thread <- spawn
+  Ref.write (Just thread) threadRef
   subscribe (\_ -> do
                 mThread <- Ref.read threadRef
                 case mThread of
                   Nothing -> pure unit
-                  Just thread -> clearTimeout thread
+                  Just thread' -> clearTimeout thread'
                 set true out
-                thread <- spawn
-                Ref.write (Just thread) threadRef
+                thread' <- spawn
+                Ref.write (Just thread') threadRef
             ) sig
   pure out
 
