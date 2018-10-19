@@ -5,26 +5,25 @@ import Signal.Internal as Sig
 import IxSignal.Internal (IxSignal, subscribeIx, get)
 
 import Prelude
-import Data.UUID (GENUUID, genUUID)
-import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Ref (REF)
+import Data.UUID (genUUID)
+import Effect (Effect)
+-- import Control.Monad.Eff (Eff)
+-- import Control.Monad.Eff.Ref (REF)
 
 
-ixSignalToSignalIx :: forall eff rw a
-                    . IxSignal (read :: READ | rw) (ref :: REF | eff) a
+ixSignalToSignalIx :: forall rw a
+                    . IxSignal (read :: READ | rw) a
                    -> String
-                   -> Eff (ref :: REF | eff) 
-                      (Sig.Signal (read :: READ, write :: WRITE) (ref :: REF | eff) a)
+                   -> Effect (Sig.Signal (read :: READ, write :: WRITE) a)
 ixSignalToSignalIx sig k = do
   out <- Sig.make =<< get sig
   subscribeIx (\a -> Sig.set a out) k sig
   pure out
 
 
-ixSignalToSignal :: forall eff rw a
-                  . IxSignal (read :: READ | rw) (ref :: REF, uuid :: GENUUID | eff) a
-                 -> Eff (ref :: REF, uuid :: GENUUID | eff)
-                    (Sig.Signal (read :: READ, write :: WRITE) (ref :: REF, uuid :: GENUUID | eff) a)
+ixSignalToSignal :: forall rw a
+                  . IxSignal (read :: READ | rw) a
+                 -> Effect (Sig.Signal (read :: READ, write :: WRITE) a)
 ixSignalToSignal sig = do
   k <- show <$> genUUID
   ixSignalToSignalIx sig k

@@ -1,22 +1,27 @@
 module IxSignal.Internal where
 
-import Signal.Types (kind SCOPE, READ, WRITE, class SignalScope)
+import Signal.Types (kind SCOPE, READ, WRITE, class SignalScope, Handler)
 
 import Prelude hiding (map)
 import Data.Maybe (Maybe (..))
 import Data.TraversableWithIndex (traverseWithIndex)
-import Data.StrMap (StrMap)
-import Data.StrMap as StrMap
+-- import Data.Object (Object)
+-- import Data.Object as Object
 import Data.UUID as UUID
 import Data.Array as Array
-import Control.Monad.Eff (Eff, kind Effect)
-import Control.Monad.Eff.Ref (REF, Ref, modifyRef, newRef, readRef, writeRef)
+import Foreign.Object (Object)
+import Foreign.Object as Object
+-- import Control.Monad.Eff (Eff, kind Effect)
+-- import Control.Monad.Eff.Ref (REF, Ref, modifyRef, newRef, readRef, writeRef)
+import Effect (Effect)
+import Effect.Ref (Ref)
+import Effect.Ref as Ref
 
 
 
-newtype IxSignal (rw :: # SCOPE) (eff :: # Effect) a = IxSignal
-  { subscribers :: Ref (StrMap (String -> a -> Eff eff Unit))
-  , individual :: Ref (StrMap a)
+newtype IxSignal (rw :: # SCOPE) a = IxSignal
+  { subscribers :: Ref (Object (String -> a -> Effect Unit))
+  , individual :: Ref (Object a)
   , broadcast :: Ref a
   }
 
@@ -26,169 +31,168 @@ instance signalScopeIxSignal :: SignalScope IxSignal where
   allowReading (IxSignal xs) = IxSignal xs
   allowWriting (IxSignal xs) = IxSignal xs
 
-subscribe :: forall eff rw a
-           . (a -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit)
-          -> IxSignal (read :: READ | rw) (ref :: REF, uuid :: UUID.GENUUID | eff) a
-          -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit
+subscribe :: forall rw a
+           . Handler a
+          -> IxSignal (read :: READ | rw) a
+          -> Effect Unit
 subscribe f = subscribeWithKey (\_ -> f)
 
-subscribeLight :: forall eff rw a
-           . (a -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit)
-          -> IxSignal (read :: READ | rw) (ref :: REF, uuid :: UUID.GENUUID | eff) a
-          -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit
+subscribeLight :: forall rw a
+                . Handler a
+               -> IxSignal (read :: READ | rw) a
+               -> Effect Unit
 subscribeLight f = subscribeWithKeyLight (\_ -> f)
 
-subscribeDiff :: forall eff rw a
-           . Eq a
-          => (a -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit)
-          -> IxSignal (read :: READ | rw) (ref :: REF, uuid :: UUID.GENUUID | eff) a
-          -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit
+subscribeDiff :: forall rw a
+               . Eq a
+              => Handler a
+              -> IxSignal (read :: READ | rw) a
+              -> Effect Unit
 subscribeDiff f = subscribeWithKeyDiff (\_ -> f)
 
-subscribeDiffLight :: forall eff rw a
-           . Eq a
-          => (a -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit)
-          -> IxSignal (read :: READ | rw) (ref :: REF, uuid :: UUID.GENUUID | eff) a
-          -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit
+subscribeDiffLight :: forall rw a
+                    . Eq a
+                   => Handler a
+                   -> IxSignal (read :: READ | rw) a
+                   -> Effect Unit
 subscribeDiffLight f = subscribeWithKeyDiffLight (\_ -> f)
 
-subscribeIx :: forall eff rw a
-             . (a -> Eff (ref :: REF | eff) Unit)
+subscribeIx :: forall rw a
+             . Handler a
             -> String
-            -> IxSignal (read :: READ | rw) (ref :: REF | eff) a
-            -> Eff (ref :: REF | eff) Unit
+            -> IxSignal (read :: READ | rw) a
+            -> Effect Unit
 subscribeIx f = subscribeIxWithKey (\_ -> f)
 
-subscribeIxLight :: forall eff rw a
-             . (a -> Eff (ref :: REF | eff) Unit)
-            -> String
-            -> IxSignal (read :: READ | rw) (ref :: REF | eff) a
-            -> Eff (ref :: REF | eff) Unit
+subscribeIxLight :: forall rw a
+                  . Handler a
+                 -> String
+                 -> IxSignal (read :: READ | rw) a
+                 -> Effect Unit
 subscribeIxLight f = subscribeIxWithKeyLight (\_ -> f)
 
-subscribeIxDiff :: forall eff rw a
-             . Eq a
-            => (a -> Eff (ref :: REF | eff) Unit)
-            -> String
-            -> IxSignal (read :: READ | rw) (ref :: REF | eff) a
-            -> Eff (ref :: REF | eff) Unit
+subscribeIxDiff :: forall rw a
+                 . Eq a
+                => Handler a
+                -> String
+                -> IxSignal (read :: READ | rw) a
+                -> Effect Unit
 subscribeIxDiff f = subscribeIxWithKeyDiff (\_ -> f)
 
-subscribeIxDiffLight :: forall eff rw a
-             . Eq a
-            => (a -> Eff (ref :: REF | eff) Unit)
-            -> String
-            -> IxSignal (read :: READ | rw) (ref :: REF | eff) a
-            -> Eff (ref :: REF | eff) Unit
+subscribeIxDiffLight :: forall rw a
+                      . Eq a
+                     => Handler a
+                     -> String
+                     -> IxSignal (read :: READ | rw) a
+                     -> Effect Unit
 subscribeIxDiffLight f = subscribeIxWithKeyDiffLight (\_ -> f)
 
-subscribeWithKey :: forall eff rw a
-                  . (String -> a -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit)
-                 -> IxSignal (read :: READ | rw) (ref :: REF, uuid :: UUID.GENUUID | eff) a
-                 -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit
+subscribeWithKey :: forall rw a
+                  . (String -> Handler a)
+                 -> IxSignal (read :: READ | rw) a
+                 -> Effect Unit
 subscribeWithKey f sig = do
   k <- show <$> UUID.genUUID
   subscribeIxWithKey f k sig
 
-subscribeWithKeyLight :: forall eff rw a
-                  . (String -> a -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit)
-                 -> IxSignal (read :: READ | rw) (ref :: REF, uuid :: UUID.GENUUID | eff) a
-                 -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit
+subscribeWithKeyLight :: forall rw a
+                       . (String -> Handler a)
+                      -> IxSignal (read :: READ | rw) a
+                      -> Effect Unit
 subscribeWithKeyLight f sig = do
   k <- show <$> UUID.genUUID
   subscribeIxWithKeyLight f k sig
 
-subscribeWithKeyDiff :: forall eff rw a
+subscribeWithKeyDiff :: forall rw a
                       . Eq a
-                     => (String -> a -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit)
-                     -> IxSignal (read :: READ | rw) (ref :: REF, uuid :: UUID.GENUUID | eff) a
-                     -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit
+                     => (String -> Handler a)
+                     -> IxSignal (read :: READ | rw) a
+                     -> Effect Unit
 subscribeWithKeyDiff f sig = do
   k <- show <$> UUID.genUUID
   subscribeIxWithKeyDiff f k sig
 
-subscribeWithKeyDiffLight :: forall eff rw a
-                      . Eq a
-                     => (String -> a -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit)
-                     -> IxSignal (read :: READ | rw) (ref :: REF, uuid :: UUID.GENUUID | eff) a
-                     -> Eff (ref :: REF, uuid :: UUID.GENUUID | eff) Unit
+subscribeWithKeyDiffLight :: forall rw a
+                           . Eq a
+                          => (String -> Handler a)
+                          -> IxSignal (read :: READ | rw) a
+                          -> Effect Unit
 subscribeWithKeyDiffLight f sig = do
   k <- show <$> UUID.genUUID
   subscribeIxWithKeyDiffLight f k sig
 
 
 -- | Add a subscriber to the set, removing and using a specific named value if it exists
-subscribeIxWithKey :: forall eff rw a
-                  . (String -> a -> Eff (ref :: REF | eff) Unit)
-                  -> String
-                  -> IxSignal (read :: READ | rw) (ref :: REF | eff) a
-                  -> Eff (ref :: REF | eff) Unit
+subscribeIxWithKey :: forall rw a
+                    . (String -> Handler a)
+                   -> String
+                   -> IxSignal (read :: READ | rw) a
+                   -> Effect Unit
 subscribeIxWithKey f k (IxSignal {individual,broadcast,subscribers}) = do
-  modifyRef subscribers (StrMap.insert k f)
+  void (Ref.modify (Object.insert k f) subscribers)
   x <- do
-    mI <- StrMap.lookup k <$> readRef individual
+    mI <- Object.lookup k <$> Ref.read individual
     case mI of
-      Nothing -> readRef broadcast
+      Nothing -> Ref.read broadcast
       Just i -> do
-        modifyRef individual (StrMap.delete k)
+        void (Ref.modify (Object.delete k) individual)
         pure i
   f k x
 
 -- | Add a subscriber to the set, without applying a value first. Deletes specific indexed named value, if it exists.
-subscribeIxWithKeyLight :: forall eff rw a
-                        . (String -> a -> Eff (ref :: REF | eff) Unit)
+subscribeIxWithKeyLight :: forall rw a
+                         . (String -> Handler a)
                         -> String
-                        -> IxSignal (read :: READ | rw) (ref :: REF | eff) a
-                        -> Eff (ref :: REF | eff) Unit
+                        -> IxSignal (read :: READ | rw) a
+                        -> Effect Unit
 subscribeIxWithKeyLight f k (IxSignal {subscribers,individual}) = do
-  modifyRef individual (StrMap.delete k)
-  modifyRef subscribers (StrMap.insert k f)
+  void (Ref.modify (Object.delete k) individual)
+  void (Ref.modify (Object.insert k f) subscribers)
 
 
 -- | Only respond to changes in signal's value, not submissions in total
-subscribeIxWithKeyDiff :: forall eff rw a
+subscribeIxWithKeyDiff :: forall rw a
                         . Eq a
-                       => (String -> a -> Eff (ref :: REF | eff) Unit)
+                       => (String -> Handler a)
                        -> String
-                       -> IxSignal (read :: READ | rw) (ref :: REF | eff) a
-                       -> Eff (ref :: REF | eff) Unit
+                       -> IxSignal (read :: READ | rw) a
+                       -> Effect Unit
 subscribeIxWithKeyDiff f k sig = do
-  lastValueRef <- newRef =<< get sig
+  lastValueRef <- Ref.new =<< get sig
   let go k' x = do
-        lastValue <- readRef lastValueRef
+        lastValue <- Ref.read lastValueRef
         when (x /= lastValue) $ do
-          writeRef lastValueRef x
+          Ref.write x lastValueRef
           f k' x
   subscribeIxWithKey go k sig
 
 
 -- | Like `subscribeIxWithKeyDiff`, but without an initial firing
-subscribeIxWithKeyDiffLight :: forall eff rw a
+subscribeIxWithKeyDiffLight :: forall rw a
                              . Eq a
-                            => (String -> a -> Eff (ref :: REF | eff) Unit)
+                            => (String -> Handler a)
                             -> String
-                            -> IxSignal (read :: READ | rw) (ref :: REF | eff) a
-                            -> Eff (ref :: REF | eff) Unit
+                            -> IxSignal (read :: READ | rw) a
+                            -> Effect Unit
 subscribeIxWithKeyDiffLight f k sig = do
-  lastValueRef <- newRef =<< get sig
+  lastValueRef <- Ref.new =<< get sig
   let go k' x = do
-        lastValue <- readRef lastValueRef
+        lastValue <- Ref.read lastValueRef
         when (x /= lastValue) $ do
-          writeRef lastValueRef x
+          Ref.write x lastValueRef
           f k' x
   subscribeIxWithKeyLight go k sig
 
 
 -- | Publish a message to the set of subscribers
-set :: forall eff rw a
-     . a -> IxSignal (write :: WRITE | rw) (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
+set :: forall rw a. a -> IxSignal (write :: WRITE | rw) a -> Effect Unit
 set x sig = setExcept [] x sig
 
 
-setExcept :: forall eff rw a. Array String -> a -> IxSignal (write :: WRITE | rw) (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
+setExcept :: forall rw a. Array String -> a -> IxSignal (write :: WRITE | rw) a -> Effect Unit
 setExcept except x (IxSignal {subscribers,broadcast}) = do
-  writeRef broadcast x
-  fs <- readRef subscribers
+  Ref.write x broadcast
+  fs <- Ref.read subscribers
   let go k f
         | k `Array.notElem` except = f k x
         | otherwise = pure unit
@@ -196,93 +200,80 @@ setExcept except x (IxSignal {subscribers,broadcast}) = do
 
 
 -- | Set a distinguished value for the index, storing if a subscriber is absent
-setIx :: forall eff rw a. a -> String -> IxSignal (write :: WRITE | rw) (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
+setIx :: forall rw a. a -> String -> IxSignal (write :: WRITE | rw) a -> Effect Unit
 setIx x k (IxSignal {subscribers,individual,broadcast}) = do
-  mF <- StrMap.lookup k <$> readRef subscribers
+  mF <- Object.lookup k <$> Ref.read subscribers
   case mF of
-    Nothing -> modifyRef individual (StrMap.insert k x)
+    Nothing -> void (Ref.modify (Object.insert k x) individual)
     Just f -> do
-      modifyRef individual (StrMap.delete k) -- ensure no residual pending value
+      void (Ref.modify (Object.delete k) individual) -- ensure no residual pending value
       f k x
 
 
-setDiff :: forall eff rw a. Eq a => a -> IxSignal (read :: READ, write :: WRITE) (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
+setDiff :: forall rw a. Eq a => a -> IxSignal (read :: READ, write :: WRITE) a -> Effect Unit
 setDiff x sig = do
   y <- get sig
   when (y /= x) (set x sig)
 
 
-setExceptDiff :: forall eff rw a. Eq a => Array String -> a -> IxSignal (read :: READ, write :: WRITE) (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
+setExceptDiff :: forall rw a. Eq a => Array String -> a -> IxSignal (read :: READ, write :: WRITE) a -> Effect Unit
 setExceptDiff ks x sig = do
   y <- get sig
   when (y /= x) (setExcept ks x sig)
 
 
-setIxDiff :: forall eff rw a. Eq a => a -> String -> IxSignal (read :: READ, write :: WRITE) (ref :: REF | eff) a -> Eff (ref :: REF | eff) Unit
+setIxDiff :: forall rw a. Eq a => a -> String -> IxSignal (read :: READ, write :: WRITE) a -> Effect Unit
 setIxDiff x k sig = do
   y <- get sig
   when (y /= x) (setIx x k sig)
 
 
 -- | Gets the last message published to the subscribers
-get :: forall eff rw a. IxSignal (read :: READ | rw) (ref :: REF | eff) a -> Eff (ref :: REF | eff) a
-get (IxSignal {broadcast}) = readRef broadcast
+get :: forall rw a. IxSignal (read :: READ | rw) a -> Effect a
+get (IxSignal {broadcast}) = Ref.read broadcast
 
 
 -- | Attempts to get the last named value, else use the global one.
-getIx :: forall eff rw a. String -> IxSignal (read :: READ | rw) (ref :: REF | eff) a -> Eff (ref :: REF | eff) a
+getIx :: forall rw a. String -> IxSignal (read :: READ | rw) a -> Effect a
 getIx k (IxSignal {individual,broadcast}) = do
-  mX <- StrMap.lookup k <$> readRef individual
+  mX <- Object.lookup k <$> Ref.read individual
   case mX of
-    Nothing -> readRef broadcast
+    Nothing -> Ref.read broadcast
     Just x -> pure x
 
 
 -- | Removes all subscribers
-clearSubscribers :: forall eff rw a
-       . IxSignal (read :: READ | rw) (ref :: REF | eff) a
-      -> Eff (ref :: REF | eff) Unit
+clearSubscribers :: forall rw a. IxSignal (read :: READ | rw) a -> Effect Unit
 clearSubscribers (IxSignal {subscribers}) =
-  writeRef subscribers StrMap.empty
+  Ref.write Object.empty subscribers
 
 -- | Removes all individual
-clearIndividual :: forall eff rw a
-       . IxSignal (read :: READ | rw) (ref :: REF | eff) a
-      -> Eff (ref :: REF | eff) Unit
+clearIndividual :: forall rw a. IxSignal (read :: READ | rw) a -> Effect Unit
 clearIndividual (IxSignal {individual}) =
-  writeRef individual StrMap.empty
+  Ref.write Object.empty individual
 
 
 -- | Removes all from both
-clear :: forall eff rw a
-       . IxSignal (read :: READ | rw) (ref :: REF | eff) a
-      -> Eff (ref :: REF | eff) Unit
+clear :: forall rw a. IxSignal (read :: READ | rw) a -> Effect Unit
 clear sig = clearSubscribers sig >>= \_ -> clearIndividual sig
 
 
-deleteSubscriber :: forall eff rw a
-        . String -> IxSignal (read :: READ | rw) (ref :: REF | eff) a
-       -> Eff (ref :: REF | eff) Unit
+deleteSubscriber :: forall rw a. String -> IxSignal (read :: READ | rw) a -> Effect Unit
 deleteSubscriber k (IxSignal {subscribers}) =
-  modifyRef subscribers (StrMap.delete k)
+  void (Ref.modify (Object.delete k) subscribers)
 
-deleteIndividual :: forall eff rw a
-        . String -> IxSignal (read :: READ | rw) (ref :: REF | eff) a
-       -> Eff (ref :: REF | eff) Unit
+deleteIndividual :: forall rw a. String -> IxSignal (read :: READ | rw) a -> Effect Unit
 deleteIndividual k (IxSignal {individual}) =
-  modifyRef individual (StrMap.delete k)
+  void (Ref.modify (Object.delete k) individual)
 
-delete :: forall eff rw a
-        . String -> IxSignal (read :: READ | rw) (ref :: REF | eff) a
-       -> Eff (ref :: REF | eff) Unit
+delete :: forall rw a. String -> IxSignal (read :: READ | rw) a -> Effect Unit
 delete k sig = deleteSubscriber k sig >>= \_ -> deleteIndividual k sig
 
 
 -- | Create a signal with a starting value
-make :: forall eff a. a -> Eff (ref :: REF | eff)
-        (IxSignal (read :: READ, write :: WRITE) (ref :: REF | eff) a)
+make :: forall a. a -> Effect (IxSignal (read :: READ, write :: WRITE) a)
 make x = do
-  subscribers <- newRef StrMap.empty
-  individual <- newRef StrMap.empty
-  broadcast <- newRef x
+  subscribers <- Ref.new Object.empty
+  individual  <- Ref.new Object.empty
+  broadcast   <- Ref.new x
   pure (IxSignal {subscribers,individual,broadcast})

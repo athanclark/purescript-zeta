@@ -1,29 +1,28 @@
 module IxSignal.Extra where
 
-import Signal.Types (READ, WRITE)
+import Signal.Types (READ, Handler)
 import IxSignal.Internal (IxSignal)
 import IxSignal.Internal as IxSignal
 
 import Prelude
 import Data.Maybe (Maybe (..))
 import Data.Either (Either (..))
-import Data.UUID (GENUUID, genUUID)
-import Control.Monad.Aff (Aff, makeAff, nonCanceler)
-import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Class (liftEff)
-import Control.Monad.Eff.Ref (REF)
+import Data.UUID (genUUID)
+import Effect (Effect)
+import Effect.Class (liftEffect)
+import Effect.Aff (Aff, makeAff, nonCanceler)
 
 
 
 -- * Proceeding when satisfying a Predicate
 
 -- | Applies the function only once, when the predicate is satisfied (potentially immediately)
-onWhenIx :: forall eff rw a b
+onWhenIx :: forall rw a b
           . (b -> Maybe a)
-         -> (a -> Eff (ref :: REF | eff) Unit)
+         -> Handler a
          -> String
-         -> IxSignal (read :: READ | rw) (ref :: REF | eff) b
-         -> Eff (ref :: REF | eff) Unit
+         -> IxSignal (read :: READ | rw) b
+         -> Effect Unit
 onWhenIx g f k sig =
   -- uses subscribeIx to aggressively attempt application
   IxSignal.subscribeIx go k sig
@@ -34,64 +33,64 @@ onWhenIx g f k sig =
         IxSignal.deleteSubscriber k sig
         f x
 
-onWhen :: forall eff rw a b
+onWhen :: forall rw a b
         . (b -> Maybe a)
-       -> (a -> Eff (ref :: REF, uuid :: GENUUID | eff) Unit)
-       -> IxSignal (read :: READ | rw) (ref :: REF, uuid :: GENUUID | eff) b
-       -> Eff (ref :: REF, uuid :: GENUUID | eff) Unit
+       -> Handler a
+       -> IxSignal (read :: READ | rw) b
+       -> Effect Unit
 onWhen g f sig = do
   k <- show <$> genUUID
   onWhenIx g f k sig
 
 
 -- | Applies the handler once
-onAvailableIx :: forall eff rw a
-               . (a -> Eff (ref :: REF | eff) Unit)
+onAvailableIx :: forall rw a
+               . Handler a
               -> String
-              -> IxSignal (read :: READ | rw) (ref :: REF | eff) (Maybe a)
-              -> Eff (ref :: REF | eff) Unit
-onAvailableIx = onWhenIx id
+              -> IxSignal (read :: READ | rw) (Maybe a)
+              -> Effect Unit
+onAvailableIx = onWhenIx identity
 
 
-onAvailable :: forall eff rw a
-             . (a -> Eff (ref :: REF, uuid :: GENUUID | eff) Unit)
-            -> IxSignal (read :: READ | rw) (ref :: REF, uuid :: GENUUID | eff) (Maybe a)
-            -> Eff (ref :: REF, uuid :: GENUUID | eff) Unit
-onAvailable = onWhen id
+onAvailable :: forall rw a
+             . Handler a
+            -> IxSignal (read :: READ | rw) (Maybe a)
+            -> Effect Unit
+onAvailable = onWhen identity
 
 
-getWhenIx :: forall eff rw a b
+getWhenIx :: forall rw a b
            . (b -> Maybe a)
           -> String
-          -> IxSignal (read :: READ | rw) (ref :: REF | eff) b
-          -> Aff (ref :: REF | eff) a
+          -> IxSignal (read :: READ | rw) b
+          -> Aff a
 getWhenIx g k sig =
   makeAff \resolve -> do
     onWhenIx g (resolve <<< Right) k sig
     pure nonCanceler
 
 
-getWhen :: forall eff rw a b
+getWhen :: forall rw a b
          . (b -> Maybe a)
-        -> IxSignal (read :: READ | rw) (ref :: REF, uuid :: GENUUID | eff) b
-        -> Aff (ref :: REF, uuid :: GENUUID | eff) a
+        -> IxSignal (read :: READ | rw) b
+        -> Aff a
 getWhen g sig = do
-  k <- show <$> liftEff genUUID
+  k <- show <$> liftEffect genUUID
   getWhenIx g k sig
 
 
-getAvailableIx :: forall eff rw a
+getAvailableIx :: forall rw a
                 . String
-               -> IxSignal (read :: READ | rw) (ref :: REF | eff) (Maybe a)
-               -> Aff (ref :: REF | eff) a
-getAvailableIx = getWhenIx id
+               -> IxSignal (read :: READ | rw) (Maybe a)
+               -> Aff a
+getAvailableIx = getWhenIx identity
 
 
-getAvailable :: forall eff rw a
-              . IxSignal (read :: READ | rw) (ref :: REF, uuid :: GENUUID | eff) (Maybe a)
-             -> Aff (ref :: REF, uuid :: GENUUID | eff) a
+getAvailable :: forall rw a
+              . IxSignal (read :: READ | rw) (Maybe a)
+             -> Aff a
 getAvailable sig = do
-  k <- show <$> liftEff genUUID
+  k <- show <$> liftEffect genUUID
   getAvailableIx k sig
 
 
@@ -99,11 +98,11 @@ getAvailable sig = do
 
 
 -- | Applies the function only once, on the next change
-onNextIx :: forall eff rw a
-          . (a -> Eff (ref :: REF | eff) Unit)
+onNextIx :: forall rw a
+          . Handler a
          -> String
-         -> IxSignal (read :: READ | rw) (ref :: REF | eff) a
-         -> Eff (ref :: REF | eff) Unit
+         -> IxSignal (read :: READ | rw) a
+         -> Effect Unit
 onNextIx f k sig =
   IxSignal.subscribeIxLight go k sig
   where
@@ -112,28 +111,28 @@ onNextIx f k sig =
       f x
 
 
-onNext :: forall eff rw a
-        . (a -> Eff (ref :: REF, uuid :: GENUUID | eff) Unit)
-       -> IxSignal (read :: READ | rw) (ref :: REF, uuid :: GENUUID | eff) a
-       -> Eff (ref :: REF, uuid :: GENUUID | eff) Unit
+onNext :: forall rw a
+        . Handler a
+       -> IxSignal (read :: READ | rw) a
+       -> Effect Unit
 onNext f sig = do
   k <- show <$> genUUID
   onNextIx f k sig
 
 
-getNextIx :: forall eff rw a
+getNextIx :: forall rw a
            . String
-          -> IxSignal (read :: READ | rw) (ref :: REF | eff) a
-          -> Aff (ref :: REF | eff) a
+          -> IxSignal (read :: READ | rw) a
+          -> Aff a
 getNextIx k sig =
   makeAff \resolve -> do
     onNextIx (resolve <<< Right) k sig
     pure nonCanceler
 
 
-getNext :: forall eff rw a
-         . IxSignal (read :: READ | rw) (ref :: REF, uuid :: GENUUID | eff) a
-        -> Aff (ref :: REF, uuid :: GENUUID | eff) a
+getNext :: forall rw a
+         . IxSignal (read :: READ | rw) a
+        -> Aff a
 getNext sig = do
-  k <- show <$> liftEff genUUID
+  k <- show <$> liftEffect genUUID
   getNextIx k sig
