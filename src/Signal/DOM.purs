@@ -127,7 +127,7 @@ animationFrame = do
   let go = do
         t <- now
         set t out
-        void $ requestAnimationFrame go w
+        void (requestAnimationFrame go w)
   _ <- requestAnimationFrame go w
   pure out
 

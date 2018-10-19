@@ -7,8 +7,6 @@ import IxSignal.Internal (IxSignal, subscribeIx, get)
 import Prelude
 import Data.UUID (genUUID)
 import Effect (Effect)
--- import Control.Monad.Eff (Eff)
--- import Control.Monad.Eff.Ref (REF)
 
 
 ixSignalToSignalIx :: forall rw a

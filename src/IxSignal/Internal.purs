@@ -5,14 +5,10 @@ import Signal.Types (kind SCOPE, READ, WRITE, class SignalScope, Handler)
 import Prelude hiding (map)
 import Data.Maybe (Maybe (..))
 import Data.TraversableWithIndex (traverseWithIndex)
--- import Data.Object (Object)
--- import Data.Object as Object
 import Data.UUID as UUID
 import Data.Array as Array
 import Foreign.Object (Object)
 import Foreign.Object as Object
--- import Control.Monad.Eff (Eff, kind Effect)
--- import Control.Monad.Eff.Ref (REF, Ref, modifyRef, newRef, readRef, writeRef)
 import Effect (Effect)
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
@@ -87,6 +83,7 @@ subscribeIxDiffLight :: forall rw a
                      -> Effect Unit
 subscribeIxDiffLight f = subscribeIxWithKeyDiffLight (\_ -> f)
 
+-- | Subscribe a handler to a random key
 subscribeWithKey :: forall rw a
                   . (String -> Handler a)
                  -> IxSignal (read :: READ | rw) a
@@ -95,6 +92,7 @@ subscribeWithKey f sig = do
   k <- show <$> UUID.genUUID
   subscribeIxWithKey f k sig
 
+-- | Subscribe without initial application
 subscribeWithKeyLight :: forall rw a
                        . (String -> Handler a)
                       -> IxSignal (read :: READ | rw) a
