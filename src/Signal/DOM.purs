@@ -4,14 +4,14 @@ import Signal.Types (READ, WRITE)
 import Signal.Internal (Signal, make, set)
 import Signal (map')
 
-import Prelude
+import Prelude (bind, pure, (=<<), (<$>), discard, map, void, (<*>), (-), (+), when, (==))
 import Data.Tuple (Tuple (..))
 import Data.Maybe (Maybe (..))
 import Data.Array ((..))
-import Data.Array as Array
+import Data.Array (null) as Array
 import Data.Int (toNumber, round)
 import Data.DateTime.Instant (Instant)
-import Foreign.Object as Object
+import Foreign.Object (lookup) as Object
 import Effect (Effect)
 import Effect.Exception (throw)
 import Effect.Now (now)

@@ -1,18 +1,25 @@
+-- | Signals are a dual concept to Queues - they _always_ have a value that may change,
+-- | while a queue represents transient events. This module defines a lower level interface
+-- | to a signal - so you can clearly see that registering handlers via `subscribe` is effectful,
+-- | as is changing the current value with `set`.
+
 module Signal.Internal where
 
 import Signal.Types (kind SCOPE, WRITE, READ, class SignalScope, Handler)
 
 import Prelude hiding (map)
-import Data.Array as Array
+import Data.Array.ST (push, withArray) as Array
 import Data.Traversable (traverse_)
 import Effect (Effect)
 import Effect.Ref (Ref)
-import Effect.Ref as Ref
+import Effect.Ref (new, write, read, modify) as Ref
+import Control.Monad.ST (ST)
+import Control.Monad.ST (run) as ST
 
 
 
 newtype Signal (rw :: # SCOPE) a = Signal
-  { subscribers :: Ref (Array (a -> Effect Unit))
+  { subscribers :: Ref (Array (Handler a))
   , value :: Ref a
   }
 
@@ -38,7 +45,11 @@ subscribeLight :: forall rw a
                -> Signal (read :: READ | rw) a
                -> Effect Unit
 subscribeLight f (Signal {subscribers}) =
-  void (Ref.modify (\xs -> Array.snoc xs f) subscribers)
+  let go xs =
+        let go' :: forall r. ST r (Array (Handler a))
+            go' = Array.withArray (Array.push f) xs
+        in  ST.run go'
+  in  void (Ref.modify go subscribers)
 
 
 -- | Publish a message to the set of subscribers

@@ -1,17 +1,20 @@
 module IxSignal.Internal where
 
-import Signal.Types (kind SCOPE, READ, WRITE, class SignalScope, Handler)
+import Signal.Types (allowReading, kind SCOPE, READ, WRITE, class SignalScope, Handler)
 
 import Prelude hiding (map)
 import Data.Maybe (Maybe (..))
 import Data.TraversableWithIndex (traverseWithIndex)
-import Data.UUID as UUID
-import Data.Array as Array
+import Data.UUID (genUUID) as UUID
+import Data.Array (notElem) as Array
 import Foreign.Object (Object)
-import Foreign.Object as Object
+import Foreign.Object (freezeST, thawST, empty, lookup) as Object
+import Foreign.Object.ST (delete, poke) as Object
 import Effect (Effect)
 import Effect.Ref (Ref)
-import Effect.Ref as Ref
+import Effect.Ref (new, read, write, modify) as Ref
+import Control.Monad.ST (ST)
+import Control.Monad.ST (run) as ST
 
 
 
@@ -126,14 +129,21 @@ subscribeIxWithKey :: forall rw a
                    -> String
                    -> IxSignal (read :: READ | rw) a
                    -> Effect Unit
-subscribeIxWithKey f k (IxSignal {individual,broadcast,subscribers}) = do
-  void (Ref.modify (Object.insert k f) subscribers)
+subscribeIxWithKey f k sig@(IxSignal {individual,broadcast,subscribers}) = do
+  let go2 o =
+        let go' :: forall r. ST r (Object (String -> a -> Effect Unit))
+            go' = do
+              o' <- Object.thawST o
+              o'' <- Object.poke k f o'
+              Object.freezeST o''
+        in  ST.run go'
+  void (Ref.modify go2 subscribers)
   x <- do
     mI <- Object.lookup k <$> Ref.read individual
     case mI of
       Nothing -> Ref.read broadcast
       Just i -> do
-        void (Ref.modify (Object.delete k) individual)
+        deleteIndividual k sig
         pure i
   f k x
 
@@ -143,9 +153,16 @@ subscribeIxWithKeyLight :: forall rw a
                         -> String
                         -> IxSignal (read :: READ | rw) a
                         -> Effect Unit
-subscribeIxWithKeyLight f k (IxSignal {subscribers,individual}) = do
-  void (Ref.modify (Object.delete k) individual)
-  void (Ref.modify (Object.insert k f) subscribers)
+subscribeIxWithKeyLight f k sig@(IxSignal {subscribers,individual}) = do
+  deleteIndividual k sig
+  let go2 o =
+        let go' :: forall r. ST r (Object (String -> a -> Effect Unit))
+            go' = do
+              o' <- Object.thawST o
+              o'' <- Object.poke k f o'
+              Object.freezeST o''
+        in  ST.run go'
+  void (Ref.modify go2 subscribers)
 
 
 -- | Only respond to changes in signal's value, not submissions in total
@@ -199,12 +216,20 @@ setExcept except x (IxSignal {subscribers,broadcast}) = do
 
 -- | Set a distinguished value for the index, storing if a subscriber is absent
 setIx :: forall rw a. a -> String -> IxSignal (write :: WRITE | rw) a -> Effect Unit
-setIx x k (IxSignal {subscribers,individual,broadcast}) = do
+setIx x k sig@(IxSignal {subscribers,individual,broadcast}) = do
   mF <- Object.lookup k <$> Ref.read subscribers
   case mF of
-    Nothing -> void (Ref.modify (Object.insert k x) individual)
+    Nothing ->
+      let go1 o =
+            let go' :: forall r. ST r (Object a)
+                go' = do
+                  o' <- Object.thawST o
+                  o'' <- Object.poke k x o'
+                  Object.freezeST o''
+            in  ST.run go'
+      in  void (Ref.modify go1 individual)
     Just f -> do
-      void (Ref.modify (Object.delete k) individual) -- ensure no residual pending value
+      deleteIndividual k (allowReading sig) -- ensure no residual pending value
       f k x
 
 
@@ -258,11 +283,25 @@ clear sig = clearSubscribers sig >>= \_ -> clearIndividual sig
 
 deleteSubscriber :: forall rw a. String -> IxSignal (read :: READ | rw) a -> Effect Unit
 deleteSubscriber k (IxSignal {subscribers}) =
-  void (Ref.modify (Object.delete k) subscribers)
+  let go1 o =
+        let go' :: forall r. ST r (Object (String -> a -> Effect Unit))
+            go' = do
+              o' <- Object.thawST o
+              o'' <- Object.delete k o'
+              Object.freezeST o''
+        in  ST.run go'
+  in  void (Ref.modify go1 subscribers)
 
 deleteIndividual :: forall rw a. String -> IxSignal (read :: READ | rw) a -> Effect Unit
 deleteIndividual k (IxSignal {individual}) =
-  void (Ref.modify (Object.delete k) individual)
+  let go1 o =
+        let go' :: forall r. ST r (Object a)
+            go' = do
+              o' <- Object.thawST o
+              o'' <- Object.delete k o'
+              Object.freezeST o''
+        in  ST.run go'
+  in  void (Ref.modify go1 individual)
 
 delete :: forall rw a. String -> IxSignal (read :: READ | rw) a -> Effect Unit
 delete k sig = deleteSubscriber k sig >>= \_ -> deleteIndividual k sig

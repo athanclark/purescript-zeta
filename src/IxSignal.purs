@@ -4,7 +4,7 @@ import Signal.Types (READ, WRITE)
 import Signal.Internal as Sig
 import IxSignal.Internal (IxSignal, subscribeIx, get)
 
-import Prelude
+import Prelude ((=<<), bind, pure, (<$>), show, discard)
 import Data.UUID (genUUID)
 import Effect (Effect)
 
@@ -19,6 +19,7 @@ ixSignalToSignalIx sig k = do
   pure out
 
 
+-- | Generates a UUID
 ixSignalToSignal :: forall rw a
                   . IxSignal (read :: READ | rw) a
                  -> Effect (Sig.Signal (read :: READ, write :: WRITE) a)
