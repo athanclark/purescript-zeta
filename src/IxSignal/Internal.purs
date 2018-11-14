@@ -1,10 +1,23 @@
+-- | Indexed signals are similar to normal signals in that they represent a single value at all times,
+-- | and can have a set of handlers that react to the value's change. However, indexed signals also
+-- | allow for distinguished values for each handler if necessary (where handlers and these indexed
+-- | values are indexed by a string). Updating a value for a signal can also be indexed, so the
+-- | change is only reflected to that one handler. Likewise, you can broadcast the update.
+-- | IxSignals could be useful for many dynamic handlers that need to listen to a shared value -
+-- | for instance, the window size, so UI components can react a 'la responsive design at their own
+-- | individual volition, while allowing the handler to be unregistered when the user interface
+-- | component unmounts.
+
 module IxSignal.Internal where
 
 import Signal.Types (allowReading, kind SCOPE, READ, WRITE, class SignalScope, Handler)
 
-import Prelude hiding (map)
+import Prelude
+  ( Unit, bind, pure, void, (>>=), (<$>), class Eq, when, (/=), discard, (=<<)
+  , otherwise, ($), show, unit)
 import Data.Maybe (Maybe (..))
-import Data.TraversableWithIndex (traverseWithIndex)
+import Data.FoldableWithIndex (traverseWithIndex_)
+import Data.UUID (UUID)
 import Data.UUID (genUUID) as UUID
 import Data.Array (notElem) as Array
 import Foreign.Object (Object)
@@ -30,32 +43,37 @@ instance signalScopeIxSignal :: SignalScope IxSignal where
   allowReading (IxSignal xs) = IxSignal xs
   allowWriting (IxSignal xs) = IxSignal xs
 
+-- | Add a handler to the signal, and fire on the current value
 subscribe :: forall rw a
            . Handler a
           -> IxSignal (read :: READ | rw) a
-          -> Effect Unit
+          -> Effect UUID
 subscribe f = subscribeWithKey (\_ -> f)
 
+-- | Add a handler without an initial fire
 subscribeLight :: forall rw a
                 . Handler a
                -> IxSignal (read :: READ | rw) a
-               -> Effect Unit
+               -> Effect UUID
 subscribeLight f = subscribeWithKeyLight (\_ -> f)
 
+-- | Add a handler and fire initially, but only fire when the value changes
 subscribeDiff :: forall rw a
                . Eq a
               => Handler a
               -> IxSignal (read :: READ | rw) a
-              -> Effect Unit
+              -> Effect UUID
 subscribeDiff f = subscribeWithKeyDiff (\_ -> f)
 
+-- | Add a handler, but only fire when the value changes
 subscribeDiffLight :: forall rw a
                     . Eq a
                    => Handler a
                    -> IxSignal (read :: READ | rw) a
-                   -> Effect Unit
+                   -> Effect UUID
 subscribeDiffLight f = subscribeWithKeyDiffLight (\_ -> f)
 
+-- | Add a handler to the signal and fire initially, but with a specific key
 subscribeIx :: forall rw a
              . Handler a
             -> String
@@ -63,6 +81,7 @@ subscribeIx :: forall rw a
             -> Effect Unit
 subscribeIx f = subscribeIxWithKey (\_ -> f)
 
+-- | Add a handler to the signal without firing initially, but with a specific key
 subscribeIxLight :: forall rw a
                   . Handler a
                  -> String
@@ -86,41 +105,45 @@ subscribeIxDiffLight :: forall rw a
                      -> Effect Unit
 subscribeIxDiffLight f = subscribeIxWithKeyDiffLight (\_ -> f)
 
--- | Subscribe a handler to a random key
+-- | Subscribe a handler to a random UUID key
 subscribeWithKey :: forall rw a
                   . (String -> Handler a)
                  -> IxSignal (read :: READ | rw) a
-                 -> Effect Unit
+                 -> Effect UUID
 subscribeWithKey f sig = do
-  k <- show <$> UUID.genUUID
-  subscribeIxWithKey f k sig
+  k <- UUID.genUUID
+  subscribeIxWithKey f (show k) sig
+  pure k
 
 -- | Subscribe without initial application
 subscribeWithKeyLight :: forall rw a
                        . (String -> Handler a)
                       -> IxSignal (read :: READ | rw) a
-                      -> Effect Unit
+                      -> Effect UUID
 subscribeWithKeyLight f sig = do
-  k <- show <$> UUID.genUUID
-  subscribeIxWithKeyLight f k sig
+  k <- UUID.genUUID
+  subscribeIxWithKeyLight f (show k) sig
+  pure k
 
 subscribeWithKeyDiff :: forall rw a
                       . Eq a
                      => (String -> Handler a)
                      -> IxSignal (read :: READ | rw) a
-                     -> Effect Unit
+                     -> Effect UUID
 subscribeWithKeyDiff f sig = do
-  k <- show <$> UUID.genUUID
-  subscribeIxWithKeyDiff f k sig
+  k <- UUID.genUUID
+  subscribeIxWithKeyDiff f (show k) sig
+  pure k
 
 subscribeWithKeyDiffLight :: forall rw a
                            . Eq a
                           => (String -> Handler a)
                           -> IxSignal (read :: READ | rw) a
-                          -> Effect Unit
+                          -> Effect UUID
 subscribeWithKeyDiffLight f sig = do
-  k <- show <$> UUID.genUUID
-  subscribeIxWithKeyDiffLight f k sig
+  k <- UUID.genUUID
+  subscribeIxWithKeyDiffLight f (show k) sig
+  pure k
 
 
 -- | Add a subscriber to the set, removing and using a specific named value if it exists
@@ -147,7 +170,8 @@ subscribeIxWithKey f k sig@(IxSignal {individual,broadcast,subscribers}) = do
         pure i
   f k x
 
--- | Add a subscriber to the set, without applying a value first. Deletes specific indexed named value, if it exists.
+-- | Add a subscriber to the set, without applying a value first.
+--   Deletes specific indexed named value, if it exists.
 subscribeIxWithKeyLight :: forall rw a
                          . (String -> Handler a)
                         -> String
@@ -211,7 +235,7 @@ setExcept except x (IxSignal {subscribers,broadcast}) = do
   let go k f
         | k `Array.notElem` except = f k x
         | otherwise = pure unit
-  void (traverseWithIndex go fs)
+  traverseWithIndex_ go fs
 
 
 -- | Set a distinguished value for the index, storing if a subscriber is absent
@@ -232,7 +256,8 @@ setIx x k sig@(IxSignal {subscribers,individual,broadcast}) = do
       deleteIndividual k (allowReading sig) -- ensure no residual pending value
       f k x
 
-
+-- | Only set the value if it differs from the current one - useful if you don't want
+--   each handler individually to attempt diffing
 setDiff :: forall a. Eq a => a -> IxSignal (read :: READ, write :: WRITE) a -> Effect Unit
 setDiff x sig = do
   y <- get sig
@@ -281,6 +306,7 @@ clear :: forall rw a. IxSignal (read :: READ | rw) a -> Effect Unit
 clear sig = clearSubscribers sig >>= \_ -> clearIndividual sig
 
 
+-- | Removes a subscriber
 deleteSubscriber :: forall rw a. String -> IxSignal (read :: READ | rw) a -> Effect Unit
 deleteSubscriber k (IxSignal {subscribers}) =
   let go1 o =
@@ -292,6 +318,7 @@ deleteSubscriber k (IxSignal {subscribers}) =
         in  ST.run go'
   in  void (Ref.modify go1 subscribers)
 
+-- | Removes an individual value
 deleteIndividual :: forall rw a. String -> IxSignal (read :: READ | rw) a -> Effect Unit
 deleteIndividual k (IxSignal {individual}) =
   let go1 o =
@@ -303,6 +330,7 @@ deleteIndividual k (IxSignal {individual}) =
         in  ST.run go'
   in  void (Ref.modify go1 individual)
 
+-- | Removes both
 delete :: forall rw a. String -> IxSignal (read :: READ | rw) a -> Effect Unit
 delete k sig = deleteSubscriber k sig >>= \_ -> deleteIndividual k sig
 

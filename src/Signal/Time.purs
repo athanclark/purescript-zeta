@@ -3,13 +3,13 @@ module Signal.Time where
 import Signal.Types (READ, WRITE)
 import Signal.Internal (Signal, make, set, get, subscribe)
 
-import Prelude (Unit, bind, (=<<), discard, pure, ($), unit, void, (>>=))
+import Prelude (bind, (=<<), discard, pure, ($), unit, void, (>>=))
 import Data.DateTime.Instant (Instant)
 import Data.Time.Duration (Milliseconds (..))
 import Data.Int (round)
 import Data.Maybe (Maybe (..))
 import Effect (Effect)
-import Effect.Ref (new, read, write, modify) as Ref
+import Effect.Ref (new, read, write) as Ref
 import Effect.Now (now)
 import Effect.Timer (setInterval, setTimeout, clearTimeout)
 

@@ -1,3 +1,5 @@
+-- | Module for creating one signal out of another
+
 module IxSignal where
 
 import Signal.Types (READ, WRITE)

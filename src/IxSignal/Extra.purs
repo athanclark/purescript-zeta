@@ -1,3 +1,5 @@
+-- | Utilities for asynchronously drawing values out of a signal.
+
 module IxSignal.Extra where
 
 import Signal.Types (READ, Handler)
@@ -7,10 +9,11 @@ import IxSignal.Internal as IxSignal
 import Prelude
 import Data.Maybe (Maybe (..))
 import Data.Either (Either (..))
-import Data.UUID (genUUID)
+import Data.Tuple (Tuple (..))
+import Data.UUID (UUID, genUUID)
 import Effect (Effect)
 import Effect.Class (liftEffect)
-import Effect.Aff (Aff, makeAff, nonCanceler)
+import Effect.Aff (Aff, makeAff, Canceler (..))
 
 
 
@@ -33,17 +36,19 @@ onWhenIx g f k sig =
         IxSignal.deleteSubscriber k sig
         f x
 
+-- | With a random key
 onWhen :: forall rw a b
         . (b -> Maybe a)
        -> Handler a
        -> IxSignal (read :: READ | rw) b
-       -> Effect Unit
+       -> Effect UUID
 onWhen g f sig = do
-  k <- show <$> genUUID
-  onWhenIx g f k sig
+  k <- genUUID
+  onWhenIx g f (show k) sig
+  pure k
 
 
--- | Applies the handler once
+-- | Applies the handler once when the value exists
 onAvailableIx :: forall rw a
                . Handler a
               -> String
@@ -55,10 +60,11 @@ onAvailableIx = onWhenIx identity
 onAvailable :: forall rw a
              . Handler a
             -> IxSignal (read :: READ | rw) (Maybe a)
-            -> Effect Unit
+            -> Effect UUID
 onAvailable = onWhen identity
 
 
+-- | Draws the value out when the predicate is matched, potentially immediately
 getWhenIx :: forall rw a b
            . (b -> Maybe a)
           -> String
@@ -67,18 +73,19 @@ getWhenIx :: forall rw a b
 getWhenIx g k sig =
   makeAff \resolve -> do
     onWhenIx g (resolve <<< Right) k sig
-    pure nonCanceler
+    pure $ Canceler $ \_ -> liftEffect (IxSignal.deleteSubscriber k sig)
 
 
 getWhen :: forall rw a b
          . (b -> Maybe a)
         -> IxSignal (read :: READ | rw) b
-        -> Aff a
+        -> Aff (Tuple UUID a)
 getWhen g sig = do
-  k <- show <$> liftEffect genUUID
-  getWhenIx g k sig
+  k <- liftEffect genUUID
+  Tuple k <$> getWhenIx g (show k) sig
 
 
+-- | Draws the value out when `Just`
 getAvailableIx :: forall rw a
                 . String
                -> IxSignal (read :: READ | rw) (Maybe a)
@@ -88,16 +95,16 @@ getAvailableIx = getWhenIx identity
 
 getAvailable :: forall rw a
               . IxSignal (read :: READ | rw) (Maybe a)
-             -> Aff a
+             -> Aff (Tuple UUID a)
 getAvailable sig = do
-  k <- show <$> liftEffect genUUID
-  getAvailableIx k sig
+  k <- liftEffect genUUID
+  Tuple k <$> getAvailableIx (show k) sig
 
 
 -- * Proceeding on the next change
 
 
--- | Applies the function only once, on the next change
+-- | Applies the handler only once, on the next change
 onNextIx :: forall rw a
           . Handler a
          -> String
@@ -111,15 +118,18 @@ onNextIx f k sig =
       f x
 
 
+-- | Using a random key
 onNext :: forall rw a
         . Handler a
        -> IxSignal (read :: READ | rw) a
-       -> Effect Unit
+       -> Effect UUID
 onNext f sig = do
-  k <- show <$> genUUID
-  onNextIx f k sig
+  k <- genUUID
+  onNextIx f (show k) sig
+  pure k
 
 
+-- | Draws the value out on the next change
 getNextIx :: forall rw a
            . String
           -> IxSignal (read :: READ | rw) a
@@ -127,12 +137,12 @@ getNextIx :: forall rw a
 getNextIx k sig =
   makeAff \resolve -> do
     onNextIx (resolve <<< Right) k sig
-    pure nonCanceler
+    pure $ Canceler $ \_ -> liftEffect (IxSignal.deleteSubscriber k sig)
 
 
 getNext :: forall rw a
          . IxSignal (read :: READ | rw) a
-        -> Aff a
+        -> Aff (Tuple UUID a)
 getNext sig = do
-  k <- show <$> liftEffect genUUID
-  getNextIx k sig
+  k <- liftEffect genUUID
+  Tuple k <$> getNextIx (show k) sig
