@@ -20,8 +20,8 @@ import Web.HTML (window)
 import Web.HTML.Window (document, requestAnimationFrame, innerWidth, innerHeight)
 import Web.HTML.Window as Window
 import Web.HTML.HTMLDocument (body)
-import Web.HTML.HTMLDocument as HTMLDocument
-import Web.HTML.HTMLElement as HTMLElement
+import Web.HTML.HTMLDocument (toDocument) as HTMLDocument
+import Web.HTML.HTMLElement (toElement) as HTMLElement
 import Web.Event.Event (EventType (..))
 import Web.Event.EventTarget (addEventListener, eventListener)
 import Web.DOM.Element (scrollLeft, scrollTop)

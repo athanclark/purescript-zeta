@@ -3,7 +3,7 @@
 module IxSignal where
 
 import Signal.Types (READ, WRITE)
-import Signal.Internal as Sig
+import Signal.Internal (make, set, Signal) as Sig
 import IxSignal.Internal (IxSignal, subscribeIx, get)
 
 import Prelude ((=<<), bind, pure, (<$>), show, discard)

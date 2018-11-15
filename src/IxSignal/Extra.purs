@@ -4,7 +4,7 @@ module IxSignal.Extra where
 
 import Signal.Types (READ, Handler)
 import IxSignal.Internal (IxSignal)
-import IxSignal.Internal as IxSignal
+import IxSignal.Internal (deleteSubscriber, subscribeIxLight, subscribeIx) as IxSignal
 
 import Prelude
 import Data.Maybe (Maybe (..))

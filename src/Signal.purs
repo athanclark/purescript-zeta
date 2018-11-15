@@ -13,7 +13,7 @@ import Data.Traversable (traverse_)
 import Data.Maybe (Maybe (Just), isJust, fromMaybe)
 import Data.Foldable (class Foldable, foldr)
 import Effect (Effect)
-import Effect.Ref as Ref
+import Effect.Ref (new, write, read) as Ref
 import Control.Execution.Immediate (run0)
 
 
