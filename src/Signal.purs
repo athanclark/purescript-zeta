@@ -1,7 +1,3 @@
--- | This module tries to mimic purescript-signal's API, without hiding the fact that new Signals
--- | are _created_ in the process of mapping over their value - this means that if you have dangling
--- | subscribers to the old reference, then it won't get garbage collected.
-
 module Signal where
 
 import Signal.Types (READ, WRITE)
@@ -13,7 +9,7 @@ import Data.Traversable (traverse_)
 import Data.Maybe (Maybe (Just), isJust, fromMaybe)
 import Data.Foldable (class Foldable, foldr)
 import Effect (Effect)
-import Effect.Ref (new, write, read) as Ref
+import Effect.Ref as Ref
 import Control.Execution.Immediate (run0)
 
 
