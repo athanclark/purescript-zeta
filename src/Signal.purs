@@ -53,6 +53,8 @@ subscribeLight f (Signal {subscribers}) =
   in  void (Ref.modify go subscribers)
 
 
+-- | Fires the handler on the initial value, and successively only when the value changes
+--   with respect to `Eq`.
 subscribeDiff :: forall rw a
                . Eq a
                => Handler a
@@ -68,6 +70,8 @@ subscribeDiff f sig = do
   subscribe go sig
 
 
+-- | Does not fire the handler on the initial value - only waits until it changes with
+--   respect to `Eq`.
 subscribeDiffLight :: forall rw a
                . Eq a
                => Handler a
@@ -83,8 +87,6 @@ subscribeDiffLight f sig = do
   subscribeLight go sig
 
 
-
--- FIXME copy all the diffing stuff
 
 -- | Publish a message to the set of subscribers
 set :: forall rw a. a -> Signal (write :: WRITE | rw) a -> Effect Unit
