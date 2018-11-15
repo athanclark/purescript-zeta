@@ -55,3 +55,5 @@ main =
         test STest.subscribeSync
         logSub "Signal.set after Signal.subscribe"
         test STest.setSubscribeSync
+        logSub "Signal.subscribeLight doesn't sync after Signal.make"
+        test STest.subscribeLightNoSync

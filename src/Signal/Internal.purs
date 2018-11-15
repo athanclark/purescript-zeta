@@ -52,6 +52,9 @@ subscribeLight f (Signal {subscribers}) =
   in  void (Ref.modify go subscribers)
 
 
+-- FIXME copy all the diffing stuff
+-- FIXME Move to Signal, Signal to Signal.Compat
+
 -- | Publish a message to the set of subscribers
 set :: forall rw a. a -> Signal (write :: WRITE | rw) a -> Effect Unit
 set x (Signal {subscribers,value}) = do
