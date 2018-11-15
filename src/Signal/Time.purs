@@ -1,7 +1,7 @@
 module Signal.Time where
 
 import Signal.Types (READ, WRITE)
-import Signal.Internal (Signal, make, set, get, subscribe)
+import Signal (Signal, make, set, get, subscribe)
 
 import Prelude (bind, (=<<), discard, pure, ($), unit, void, (>>=))
 import Data.DateTime.Instant (Instant)

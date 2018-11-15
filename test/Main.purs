@@ -19,10 +19,10 @@ import Effect.Ref as Ref
 import Partial.Unsafe (unsafePartial)
 
 
-test :: (forall a. Eq a => NonEmptyArray a -> (Boolean -> Effect Unit) -> Effect Unit)
+test :: (forall a. Eq a => a -> (Boolean -> Effect Unit) -> Effect Unit)
      -> Aff Unit
 test go = makeAff \resolve -> do
-  testCases <- QC.randomSample' 100 (arbitrary :: QC.Gen (NonEmptyArray Int))
+  testCases <- QC.randomSample' 100 (arbitrary :: QC.Gen Int)
   successes <- Ref.new 0
   let report :: Boolean -> Effect Unit
       report success
@@ -57,3 +57,9 @@ main =
         test STest.setSubscribeSync
         logSub "Signal.subscribeLight doesn't sync after Signal.make"
         test STest.subscribeLightNoSync
+        logSub "Signal.get identity"
+        test STest.getIdentity
+        logSub "Signal.get idempotent"
+        test STest.getIdempotent
+        logSub "Signal.clear clears"
+        test STest.clearNoSync

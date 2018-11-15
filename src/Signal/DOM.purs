@@ -1,8 +1,8 @@
 module Signal.DOM where
 
 import Signal.Types (READ, WRITE)
-import Signal.Internal (Signal, make, set)
-import Signal (map')
+import Signal (Signal, make, set)
+import Signal.Compat (map')
 
 import Prelude (bind, pure, (=<<), (<$>), discard, map, void, (<*>), (-), (+), when, (==))
 import Data.Tuple (Tuple (..))
