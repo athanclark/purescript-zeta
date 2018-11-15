@@ -2,6 +2,7 @@ module Test.Main where
 
 import Prelude
 import Test.Main.Signal as STest
+import Test.Main.IxSignal as IxSTest
 import Test.QuickCheck (arbitrary)
 import Test.QuickCheck.Gen as QC
 
@@ -63,3 +64,17 @@ main =
         test STest.getIdempotent
         logSub "Signal.clear clears"
         test STest.clearNoSync
+
+        liftEffect $ log "IxSignal:"
+        logSub "IxSignal.subscribe after IxSignal.make"
+        test IxSTest.subscribeSync
+        logSub "IxSignal.set after IxSignal.subscribe"
+        test IxSTest.setSubscribeSync
+        logSub "IxSignal.subscribeLight doesn't sync after IxSignal.make"
+        test IxSTest.subscribeLightNoSync
+        logSub "IxSignal.get identity"
+        test IxSTest.getIdentity
+        logSub "IxSignal.get idempotent"
+        test IxSTest.getIdempotent
+        logSub "IxSignal.clear clears"
+        test IxSTest.clearNoSync
