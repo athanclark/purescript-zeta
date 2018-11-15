@@ -10,6 +10,7 @@ import Signal.Types (kind SCOPE, WRITE, READ, class SignalScope, Handler)
 import Prelude hiding (map)
 import Data.Array.ST (push, withArray) as Array
 import Data.Traversable (traverse_)
+import Data.Maybe (Maybe (..))
 import Effect (Effect)
 import Effect.Ref (Ref)
 import Effect.Ref (new, write, read, modify) as Ref
@@ -50,6 +51,37 @@ subscribeLight f (Signal {subscribers}) =
             go' = Array.withArray (Array.push f) xs
         in  ST.run go'
   in  void (Ref.modify go subscribers)
+
+
+subscribeDiff :: forall rw a
+               . Eq a
+               => Handler a
+               -> Signal (read :: READ | rw) a
+               -> Effect Unit
+subscribeDiff f sig = do
+  lastValueRef <- Ref.new Nothing
+  let go x = do
+        lastValue <- Ref.read lastValueRef
+        when (Just x /= lastValue) $ do
+          Ref.write (Just x) lastValueRef
+          f x
+  subscribe go sig
+
+
+subscribeDiffLight :: forall rw a
+               . Eq a
+               => Handler a
+               -> Signal (read :: READ | rw) a
+               -> Effect Unit
+subscribeDiffLight f sig = do
+  lastValueRef <- Ref.new =<< get sig
+  let go x = do
+        lastValue <- Ref.read lastValueRef
+        when (x /= lastValue) $ do
+          Ref.write x lastValueRef
+          f x
+  subscribeLight go sig
+
 
 
 -- FIXME copy all the diffing stuff

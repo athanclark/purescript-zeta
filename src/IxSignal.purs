@@ -198,11 +198,11 @@ subscribeIxWithKeyDiff :: forall rw a
                        -> IxSignal (read :: READ | rw) a
                        -> Effect Unit
 subscribeIxWithKeyDiff f k sig = do
-  lastValueRef <- Ref.new =<< get sig
+  lastValueRef <- Ref.new Nothing
   let go k' x = do
         lastValue <- Ref.read lastValueRef
-        when (x /= lastValue) $ do
-          Ref.write x lastValueRef
+        when (Just x /= lastValue) $ do
+          Ref.write (Just x) lastValueRef
           f k' x
   subscribeIxWithKey go k sig
 
