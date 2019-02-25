@@ -16,13 +16,8 @@
     "purescript-console": "^4.1.0",
     "purescript-refs": "^4.1.0",
     "purescript-arrays": "^5.1.0",
-    "purescript-setimmediate": "^1.0.1",
-    "purescript-js-timers": "^4.0.1",
     "purescript-aff": "^5.0.2",
-    "purescript-web-html": "^1.2.0",
-    "purescript-web-events": "^1.0.0",
-    "purescript-foreign-object": "^1.0.0",
-    "purescript-uuid": "^5.0.0"
+    "purescript-foreign-object": "^1.0.0"
   },
   "devDependencies": {
     "purescript-psci-support": "^4.0.0",

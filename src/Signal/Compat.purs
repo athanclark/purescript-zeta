@@ -7,14 +7,13 @@ module Signal.Compat where
 import Signal.Types (READ, WRITE)
 import Signal (Signal, subscribe, make, set, get)
 
-import Prelude hiding (map)
-import Data.Array as Array
+import Prelude (Unit, pure, bind, discard, (=<<), (>>=), ($), class Eq, (<$>), (<*>), when, (/=))
+import Data.Array (cons) as Array
 import Data.Traversable (traverse_)
 import Data.Maybe (Maybe (Just), isJust, fromMaybe)
 import Data.Foldable (class Foldable, foldr)
 import Effect (Effect)
 import Effect.Ref (new, write, read) as Ref
-import Control.Execution.Immediate (run0)
 
 
 -- | Alias for `make`
@@ -167,7 +166,7 @@ flattenArray :: forall a rw
              -> Effect (Signal (read :: READ, write :: WRITE) a)
 flattenArray sig i = do
   out <- make i
-  let feed xs = traverse_ (\x -> run0 (set x out)) xs
+  let feed xs = traverse_ (\x -> set x out) xs
   subscribe feed sig
   pure out
 

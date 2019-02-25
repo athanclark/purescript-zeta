@@ -7,7 +7,7 @@ module Signal where
 
 import Signal.Types (kind SCOPE, WRITE, READ, class SignalScope, Handler)
 
-import Prelude hiding (map)
+import Prelude (Unit, bind, void, class Eq, discard, pure, ($), (=<<), when, (/=))
 import Data.Array.ST (push, withArray) as Array
 import Data.Traversable (traverse_)
 import Data.Maybe (Maybe (..))
