@@ -101,7 +101,7 @@ subscribeWithKey k f sig@(IxSignal {individual,broadcast,subscribers}) = do
   f k x
 
 -- | Add a subscriber to the set, without applying a value first.
---   Deletes specific indexed named value, if it exists.
+-- | Deletes specific indexed named value, if it exists.
 subscribeWithKeyLight :: forall rw a
                        . String
                       -> (String -> Handler a)
@@ -187,7 +187,7 @@ setIx x k sig@(IxSignal {subscribers,individual,broadcast}) = do
       f k x
 
 -- | Only set the value if it differs from the current one - useful if you don't want
---   each handler individually to attempt diffing
+-- | each handler individually to attempt diffing
 setDiff :: forall a. Eq a => a -> IxSignal (read :: READ, write :: WRITE) a -> Effect Unit
 setDiff x sig = do
   y <- get sig

@@ -54,7 +54,7 @@ subscribeLight f (Signal {subscribers}) =
 
 
 -- | Fires the handler on the initial value, and successively only when the value changes
---   with respect to `Eq`.
+-- | with respect to `Eq`.
 subscribeDiff :: forall rw a
                . Eq a
                => Handler a
@@ -71,7 +71,7 @@ subscribeDiff f sig = do
 
 
 -- | Does not fire the handler on the initial value - only waits until it changes with
---   respect to `Eq`.
+-- | respect to `Eq`.
 subscribeDiffLight :: forall rw a
                . Eq a
                => Handler a
@@ -94,6 +94,14 @@ set x (Signal {subscribers,value}) = do
   Ref.write x value
   fs <- Ref.read subscribers
   traverse_ (\f -> f x) fs
+
+-- | Only set the value if it differs from the current one - useful if you don't want
+-- | each handler individually to attempt diffing
+setDiff :: forall a. Eq a => a -> Signal (read :: READ, write :: WRITE) a -> Effect Unit
+setDiff x sig = do
+  y <- get sig
+  when (y /= x) (set x sig)
+
 
 -- | Gets the last message published to the subscribers
 get :: forall rw a. Signal (read :: READ | rw) a -> Effect a
