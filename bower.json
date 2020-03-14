@@ -12,20 +12,20 @@
     "url": "git://github.com/athanclark/purescript-zeta.git"
   },
   "dependencies": {
-    "purescript-prelude": "^4.1.0",
+    "purescript-prelude": "^4.1.1",
     "purescript-console": "^4.1.0",
     "purescript-refs": "^4.1.0",
-    "purescript-arrays": "^5.1.0",
+    "purescript-arrays": "^5.3.1",
     "purescript-setimmediate": "^1.0.1",
     "purescript-js-timers": "^4.0.1",
-    "purescript-aff": "^5.0.2",
-    "purescript-web-html": "^1.2.0",
-    "purescript-web-events": "^1.0.0",
-    "purescript-foreign-object": "^1.0.0",
-    "purescript-uuid": "^5.0.0"
+    "purescript-aff": "^5.1.2",
+    "purescript-web-html": "^2.3.0",
+    "purescript-web-events": "^2.0.1",
+    "purescript-foreign-object": "^2.0.2",
+    "purescript-uuid": "^6.0.1"
   },
   "devDependencies": {
     "purescript-psci-support": "^4.0.0",
-    "purescript-quickcheck": "^5.0.0"
+    "purescript-quickcheck": "^6.1.0"
   }
 }
