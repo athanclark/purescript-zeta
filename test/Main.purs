@@ -10,7 +10,6 @@ import Data.Enum (succ)
 import Data.Either (Either (..))
 import Data.Maybe (Maybe (Just))
 import Data.Traversable (traverse_)
-import Data.Array.NonEmpty (NonEmptyArray)
 import Effect (Effect)
 import Effect.Class (liftEffect)
 import Effect.Aff (Aff, makeAff, nonCanceler, runAff_)
@@ -67,14 +66,14 @@ main =
 
         liftEffect $ log "IxSignal:"
         logSub "IxSignal.subscribe after IxSignal.make"
-        test IxSTest.subscribeSync
+        test (IxSTest.subscribeSync "foo")
         logSub "IxSignal.set after IxSignal.subscribe"
-        test IxSTest.setSubscribeSync
+        test (IxSTest.setSubscribeSync "foo")
         logSub "IxSignal.subscribeLight doesn't sync after IxSignal.make"
-        test IxSTest.subscribeLightNoSync
+        test (IxSTest.subscribeLightNoSync "foo")
         logSub "IxSignal.get identity"
         test IxSTest.getIdentity
         logSub "IxSignal.get idempotent"
         test IxSTest.getIdempotent
         logSub "IxSignal.clear clears"
-        test IxSTest.clearNoSync
+        test (IxSTest.clearNoSync "foo")

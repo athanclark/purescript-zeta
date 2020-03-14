@@ -10,20 +10,22 @@ import Effect.Timer (setTimeout)
 
 subscribeSync :: forall a
               . Eq a
-              => a
+              => String
+              -> a
               -> (Boolean -> Effect Unit)
               -> Effect Unit
-subscribeSync x onComplete = do
+subscribeSync k x onComplete = do
   sig <- IxS.make x
-  void $ IxS.subscribe (\y -> onComplete (y == x)) sig
+  IxS.subscribe k (\y -> onComplete (y == x)) sig
 
 
 setSubscribeSync :: forall a
                   . Eq a
-                  => a
+                  => String
+                  -> a
                   -> (Boolean -> Effect Unit)
                   -> Effect Unit
-setSubscribeSync x onComplete = do
+setSubscribeSync k x onComplete = do
   obtained <- Ref.new Nothing
   sig <- IxS.make x
   let go y = do
@@ -31,20 +33,21 @@ setSubscribeSync x onComplete = do
         case mOb of
           Nothing -> Ref.write (Just y) obtained
           Just y' -> onComplete (x == y')
-  _ <- IxS.subscribe go sig
+  _ <- IxS.subscribe k go sig
   IxS.set x sig
 
 
 subscribeLightNoSync :: forall a
                       . Eq a
-                      => a
+                      => String
+                      -> a
                       -> (Boolean -> Effect Unit)
                       -> Effect Unit
-subscribeLightNoSync x onComplete = do
+subscribeLightNoSync k x onComplete = do
   obtained <- Ref.new Nothing
   sig <- IxS.make x
   let go y = Ref.write (Just y) obtained
-  _ <- IxS.subscribeLight go sig
+  _ <- IxS.subscribeLight k go sig
   void $ setTimeout 100 $ do
     mOb <- Ref.read obtained
     onComplete (mOb == Nothing)
@@ -75,14 +78,15 @@ getIdempotent x onComplete = do
 
 clearNoSync :: forall a
              . Eq a
-             => a
+             => String
+             -> a
              -> (Boolean -> Effect Unit)
              -> Effect Unit
-clearNoSync x onComplete = do
+clearNoSync k x onComplete = do
   obtained <- Ref.new Nothing
   sig <- IxS.make x
   let go y = Ref.write (Just y) obtained
-  _ <- IxS.subscribeLight go sig
+  _ <- IxS.subscribeLight k go sig
   IxS.clear sig
   IxS.set x sig
   void $ setTimeout 100 $ do
