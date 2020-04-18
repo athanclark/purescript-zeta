@@ -1,0 +1,24 @@
+{
+  "name": "purescript-zeta",
+  "set": "psc-0.13.6-20200404",
+  "source": "https://github.com/purescript/package-sets.git",
+  "depends": [
+    "arrays",
+    "aff",
+    "exists",
+    "profunctor",
+    "strings",
+    "quickcheck",
+    "lcg",
+    "transformers",
+    "foldable-traversable",
+    "js-timers",
+    "exceptions",
+    "node-fs",
+    "node-buffer",
+    "node-readline",
+    "prelude",
+    "datetime",
+    "now"
+  ]
+}

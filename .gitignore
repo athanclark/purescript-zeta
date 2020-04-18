@@ -6,3 +6,6 @@
 /.psc*
 /.purs*
 /.psa*
+/.spago/
+/.psc-package
+/.psc-ide-port
