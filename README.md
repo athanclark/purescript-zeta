@@ -1,5 +1,7 @@
 # PureScript-Zeta
 
+[![Build Status](https://travis-ci.org/athanclark/purescript-zeta.svg?branch=master)](https://travis-ci.org/athanclark/purescript-zeta)
+
 > Signals from outer space
 
 This library is a competing Signaling implementation, modeled after
