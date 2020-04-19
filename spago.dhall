@@ -9,14 +9,11 @@ You can edit this file as you like.
   , "console"
   , "effect"
   , "foreign-object"
-  , "js-timers"
   , "prelude"
-  , "psci-support"
-  , "quickcheck"
   , "refs"
   ]
 , packages = ./packages.dhall
-, sources = [ "src/**/*.purs", "test/**/*.purs" ]
+, sources = [ "src/**/*.purs" ]
 , license = "BSD-3-Clause"
 , repository = "https://github.com/athanclark/purescript-zeta.git"
 }
