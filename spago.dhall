@@ -6,10 +6,7 @@ You can edit this file as you like.
 , dependencies =
   [ "aff"
   , "arrays"
-  , "console"
-  , "effect"
   , "foreign-object"
-  , "prelude"
   , "refs"
   ]
 , packages = ./packages.dhall
