@@ -8,7 +8,7 @@ install:
   - psc-package install
 script:
   - pulp test
-  - rm -r $TRAVIS_BUILD_DIR/output/ # clean build objects
+  - rm -r output/ # clean build objects
   - purp test
-  - rm -r $TRAVIS_BUILD_DIR/output/ # clean build objects
+  - rm -r output/ # clean build objects
   - spago -x test.dhall test

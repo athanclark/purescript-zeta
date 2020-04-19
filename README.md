@@ -1,6 +1,7 @@
 # PureScript-Zeta
 
 [![Build Status](https://travis-ci.org/athanclark/purescript-zeta.svg?branch=master)](https://travis-ci.org/athanclark/purescript-zeta)
+[![Pursuit](https://pursuit.purescript.org/packages/purescript-zeta/badge)](https://pursuit.purescript.org/packages/purescript-zeta)
 
 > Signals from outer space
 
