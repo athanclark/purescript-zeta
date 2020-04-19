@@ -11,4 +11,4 @@ script:
   - rm -r output/ # clean build objects
   - purp test
   - rm -r output/ # clean build objects
-  - spago test
+  - spago -x test.dhall test
