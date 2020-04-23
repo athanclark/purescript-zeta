@@ -2,10 +2,10 @@
 -- | are _created_ in the process of mapping over their value - this means that if you have dangling
 -- | subscribers to the old reference, then it won't get garbage collected.
 
-module Signal.Compat where
+module Zeta.Compat where
 
-import Signal.Types (READ, WRITE)
-import Signal (Signal, subscribe, make, set, get)
+import Zeta.Types (READ, WRITE)
+import Zeta (Signal, subscribe, make, set, get)
 
 import Prelude (Unit, pure, bind, discard, (=<<), (>>=), ($), class Eq, (<$>), (<*>), when, (/=))
 import Data.Array (cons) as Array

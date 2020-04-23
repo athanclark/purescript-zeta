@@ -3,9 +3,9 @@
 -- | to a signal - so you can clearly see that registering handlers via `subscribe` is effectful,
 -- | as is changing the current value with `set`.
 
-module Signal where
+module Zeta where
 
-import Signal.Types (kind SCOPE, WRITE, READ, class SignalScope, Handler)
+import Zeta.Types (kind SCOPE, WRITE, READ, class SignalScope, Handler)
 
 import Prelude (Unit, bind, void, class Eq, discard, pure, ($), (=<<), when, (/=))
 import Data.Array.ST (push, withArray) as Array

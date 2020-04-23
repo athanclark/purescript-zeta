@@ -1,10 +1,10 @@
 -- | Utilities for asynchronously drawing values out of a signal.
 
-module IxSignal.Extra where
+module Zeta.Extra where
 
-import Signal.Types (READ, Handler)
-import IxSignal (IxSignal)
-import IxSignal (deleteSubscriber, subscribeLight, subscribe) as IxSignal
+import Zeta.Types (READ, Handler)
+import IxZeta (IxSignal)
+import IxZeta (deleteSubscriber, subscribeLight, subscribe) as IxZeta
 
 import Prelude (Unit, discard, identity, pure, (<<<), unit, ($))
 import Data.Maybe (Maybe (..))
@@ -26,12 +26,12 @@ onWhen :: forall rw a b
        -> Effect Unit
 onWhen g f k sig =
   -- uses subscribeIx to aggressively attempt application
-  IxSignal.subscribe k go sig
+  IxZeta.subscribe k go sig
   where
     go b = case g b of
       Nothing -> pure unit
       Just x -> do
-        IxSignal.deleteSubscriber k sig
+        IxZeta.deleteSubscriber k sig
         f x
 
 
@@ -53,7 +53,7 @@ getWhen :: forall rw a b
 getWhen g k sig =
   makeAff \resolve -> do
     onWhen g (resolve <<< Right) k sig
-    pure $ Canceler $ \_ -> liftEffect (IxSignal.deleteSubscriber k sig)
+    pure $ Canceler $ \_ -> liftEffect (IxZeta.deleteSubscriber k sig)
 
 
 -- | Draws the value out when `Just`
@@ -75,10 +75,10 @@ onNext :: forall rw a
        -> IxSignal (read :: READ | rw) a
        -> Effect Unit
 onNext f k sig =
-  IxSignal.subscribeLight k go sig
+  IxZeta.subscribeLight k go sig
   where
     go x = do
-      IxSignal.deleteSubscriber k sig
+      IxZeta.deleteSubscriber k sig
       f x
 
 
@@ -90,4 +90,4 @@ getNext :: forall rw a
 getNext k sig =
   makeAff \resolve -> do
     onNext (resolve <<< Right) k sig
-    pure $ Canceler $ \_ -> liftEffect (IxSignal.deleteSubscriber k sig)
+    pure $ Canceler $ \_ -> liftEffect (IxZeta.deleteSubscriber k sig)

@@ -1,4 +1,4 @@
-module Signal.Types where
+module Zeta.Types where
 
 import Prelude (Unit)
 import Effect (Effect)

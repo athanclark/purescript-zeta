@@ -8,10 +8,10 @@
 -- | individual volition, while allowing the handler to be unregistered when the user interface
 -- | component unmounts.
 
-module IxSignal where
+module IxZeta where
 
-import Signal.Types (allowReading, kind SCOPE, READ, WRITE, class SignalScope, Handler)
-import Signal (make, set, Signal) as Sig
+import Zeta.Types (allowReading, kind SCOPE, READ, WRITE, class SignalScope, Handler)
+import Zeta (make, set, Signal) as Sig
 
 import Prelude
   ( Unit, bind, pure, void, (>>=), (<$>), class Eq, when, (/=), discard, (=<<)

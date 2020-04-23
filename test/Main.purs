@@ -1,8 +1,8 @@
 module Test.Main where
 
 import Prelude
-import Test.Main.Signal as STest
-import Test.Main.IxSignal as IxSTest
+import Test.Main.Zeta as STest
+import Test.Main.IxZeta as IxSTest
 import Test.QuickCheck (arbitrary)
 import Test.QuickCheck.Gen as QC
 
